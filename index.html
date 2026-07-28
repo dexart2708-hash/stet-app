@@ -782,39 +782,59 @@
       };
     }
     
-    function initQuill() {
+        function initQuill() {
        const container = document.getElementById('editor-container');
        if (!container) return;
        
-       // Убеждаемся, что не накладываем Quill поверх старого
+       // Убеждаемся, что контейнер чист перед созданием редактора
        container.innerHTML = ''; 
        
        try {
-           Quill.register('modules/table', QuillTable);
+           // Пытаемся получить библиотеку QuillTable из глобального окна
+           let QuillTableModule = null;
+           if (typeof QuillTable !== 'undefined') {
+               QuillTableModule = QuillTable;
+           } else if (window.QuillTable) {
+               QuillTableModule = window.QuillTable;
+           }
+
+           // Регистрируем модуль таблиц ТОЛЬКО если библиотека найдена
+           if (QuillTableModule) {
+               Quill.register('modules/table', QuillTableModule);
+           }
+
+           // Формируем панель инструментов
+           let toolbarConfig = [
+               [{ header: [1, 2, 3, false] }],
+               ['bold', 'italic', 'underline', 'strike'],
+               [{ list: 'ordered'}, { list: 'bullet' }],
+               ['link', 'image'],
+               ['clean']
+           ];
+           // Если таблицы есть, добавляем кнопку с таблицей
+           if (QuillTableModule) {
+               toolbarConfig.splice(4, 0, [{ 'table': true }]);
+           }
+
            quillEditor = new Quill(container, {
                modules: {
-                   table: true,
-                   toolbar: [
-                       [{ header: [1, 2, 3, false] }],
-                       ['bold', 'italic', 'underline', 'strike'],
-                       [{ list: 'ordered'}, { list: 'bullet' }],
-                       ['link', 'image'],
-                       [{ 'table': true }],
-                       ['clean']
-                   ]
+                   // Включаем таблицу только если модуль есть
+                   table: !!QuillTableModule,
+                   toolbar: toolbarConfig
                },
                theme: 'snow'
            });
            
+           // Загружаем сохраненные данные, если они есть
            const node = findNode(data.sections, document.getElementById('modalOverlay').dataset.editId);
            if (node && node.content) {
                quillEditor.clipboard.dangerouslyPasteHTML(node.content);
            } else {
-               quillEditor.setText('Введите ваши инструкции, создайте таблицу или вставьте изображение...');
+               quillEditor.setText('Введите ваши инструкции, вставьте изображения...');
            }
        } catch (e) {
-           console.error("Ошибка инициализации Quill:", e);
-           container.innerHTML = `<p style="color:#e74c3c;padding:10px;">Ошибка загрузки редактора. Проверьте консоль браузера (F12).</p>`;
+           console.error("Ошибка создания Quill:", e);
+           container.innerHTML = `<p style="color:#e74c3c;padding:20px;">Не удалось загрузить визуальный редактор. Проверьте интернет-соединение и перезагрузите страницу.</p>`;
        }
     }
 
