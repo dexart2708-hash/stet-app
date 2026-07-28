@@ -12,7 +12,7 @@
   
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
+  <!-- Storage больше не нужен, скрипт ниже удален -->
 
   <link href="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.snow.css" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.js"></script>
@@ -319,7 +319,7 @@
 
   <script>
     // ============================================================
-    // 1. FIREBASE
+    // 1. FIREBASE (Storage убран)
     // ============================================================
     const firebaseConfig = {
       apiKey: "AIzaSyDdm0kaIesCu4CBennxPVoPhXwyAyAiwIg",
@@ -332,7 +332,6 @@
     };
 
     let db = null;
-    let storage = null;
     let firebaseAvailable = false;
     const DATA_DOC = 'checklists';
     const DATA_ID = 'main';
@@ -340,7 +339,6 @@
     try {
       firebase.initializeApp(firebaseConfig);
       db = firebase.firestore();
-      storage = firebase.storage();
       
       db.collection(DATA_DOC).doc(DATA_ID).get()
         .then(() => {
@@ -444,7 +442,7 @@
     }
 
     // ============================================================
-    // 2. РАБОТА С ЛОКАЛЬНЫМ ХРАНИЛИЩЕМ (Эти функции искал браузер)
+    // 2. РАБОТА С ЛОКАЛЬНЫМ ХРАНИЛИЩЕМ
     // ============================================================
     function loadFromLocalStorage() {
       const stored = localStorage.getItem('hotelChecklistData');
@@ -877,7 +875,7 @@
     }
 
     // ============================================================
-    // 8. ИНИЦИАЛИЗАЦИЯ РЕДАКТОРА QUIL (ЗАГРУЗКА КАРТИНОК)
+    // 8. ВОЗВРАТ К СТАРОМУ СПОСОБУ ЗАГРУЗКИ КАРТИНОК (ЧЕРЕЗ BASE64)
     // ============================================================
     let quillEditor = null;
 
@@ -952,31 +950,31 @@
                theme: 'snow'
            });
 
+           // ======================================================================
+           // ИЗМЕНЕНО: Возвращен старый, классический обработчик картинок (FileReader)
+           // ======================================================================
            quillEditor.getModule('toolbar').addHandler('image', function() {
                const input = document.createElement('input');
                input.setAttribute('type', 'file');
                input.setAttribute('accept', 'image/*');
                input.click();
 
-               input.onchange = async () => {
+               input.onchange = function() {
                    const file = input.files[0];
                    if (!file) return;
-                   const range = quillEditor.getSelection(true);
-                   quillEditor.insertText(range.index, '⏳ Загрузка изображения...');
 
-                   try {
-                       const fileRef = storage.ref(`images/${Date.now()}_${file.name}`);
-                       await fileRef.put(file);
-                       const downloadURL = await fileRef.getDownloadURL();
-                       quillEditor.deleteText(range.index, '⏳ Загрузка изображения...'.length);
-                       quillEditor.insertEmbed(range.index, 'image', downloadURL);
-                   } catch (error) {
-                       console.error("Ошибка загрузки картинки:", error);
-                       quillEditor.deleteText(range.index, '⏳ Загрузка изображения...'.length);
-                       quillEditor.insertText(range.index, '❌ Ошибка загрузки изображения.');
-                   }
+                   const reader = new FileReader();
+                   reader.onload = function(e) {
+                       const dataUrl = e.target.result;
+                       const range = quillEditor.getSelection(true);
+                       if (range) {
+                           quillEditor.insertEmbed(range.index, 'image', dataUrl);
+                       }
+                   };
+                   reader.readAsDataURL(file);
                };
            });
+           // ======================================================================
 
            const node = findNode(data.sections, document.getElementById('modalOverlay').dataset.editId);
            if (node && node.content) {
@@ -1073,7 +1071,7 @@
       const pulled = await pullFromFirebase();
       if (pulled) console.log('✅ Данные обновлены из Firebase');
 
-      // 4. ЖЕСТКАЯ СТРАХОВКА (на случай, если data сломалась)
+      // 4. ЖЕСТКАЯ СТРАХОВКА
       if (!data || !data.sections || data.sections.length === 0) {
         console.warn('🚨 АВАРИЙНОЕ ВОССТАНОВЛЕНИЕ ДАННЫХ!');
         data = deepClone(INITIAL_DATA);
