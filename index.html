@@ -321,7 +321,7 @@
 
   <script>
     // ============================================================
-    // 1. FIREBASE (Cloudinary/ImgBB убраны, никаких ключей не нужно)
+    // 1. FIREBASE
     // ============================================================
     const firebaseConfig = {
       apiKey: "AIzaSyDdm0kaIesCu4CBennxPVoPhXwyAyAiwIg",
@@ -867,7 +867,7 @@
     }
 
     // ============================================================
-    // 7. ИНИЦИАЛИЗАЦИЯ РЕДАКТОРА QUIL (ИЗМЕНЕНО: Переход на Catbox.moe)
+    // 7. ИНИЦИАЛИЗАЦИЯ РЕДАКТОРА QUIL (ИЗМЕНЕНО: Postimages.org)
     // ============================================================
     let quillEditor = null;
 
@@ -957,7 +957,7 @@
            });
 
            // =========================================================================
-           // ИЗМЕНЕНО: Загрузка через Catbox.moe (без ключа, работает в РФ)
+           // ИЗМЕНЕНО: Постimages API (надежный, бесплатный, не требует ключа)
            // =========================================================================
            function resizeAndCompressImage(file, maxWidth, maxHeight, quality) {
                return new Promise((resolve, reject) => {
@@ -1010,7 +1010,7 @@
                    if (!file) return;
 
                    const range = quillEditor.getSelection(true);
-                   const tempText = '⏳ Загрузка и сжатие изображения...';
+                   const tempText = '⏳ Загрузка и сжатие изображения (Postimages)...';
                    const startIdx = range.index;
                    quillEditor.insertText(startIdx, tempText);
 
@@ -1019,31 +1019,28 @@
                        const compressedBlob = await resizeAndCompressImage(file, 1200, 1200, 0.8);
                        
                        const formData = new FormData();
-                       formData.append('reqtype', 'fileupload');
-                       formData.append('fileToUpload', compressedBlob, file.name);
+                       formData.append('file', compressedBlob, file.name);
 
-                       // 2. Отправляем на Catbox (без ключей, просто POST)
-                       const response = await fetch('https://catbox.moe/user/api.php', {
+                       // 2. Отправляем на Postimages
+                       const response = await fetch('https://postimg.cc/api/upload', {
                            method: 'POST',
                            body: formData
                        });
                        
-                       const text = await response.text();
+                       const data = await response.json();
 
-                       // Catbox возвращает прямую ссылку в виде текста, если успешно
-                       if (text.startsWith('https://')) {
+                       if (data.url) {
                            quillEditor.deleteText(startIdx, tempText.length);
-                           quillEditor.insertEmbed(startIdx, 'image', text);
+                           quillEditor.insertEmbed(startIdx, 'image', data.url);
                        } else {
                            quillEditor.deleteText(startIdx, tempText.length);
-                           quillEditor.insertText(startIdx, `❌ Ошибка загрузки: ${text || 'Неизвестная ошибка'}`);
+                           quillEditor.insertText(startIdx, `❌ Ошибка загрузки: ${data.message || 'Неизвестная ошибка'}`);
                        }
                    } catch (error) {
                        console.error("Ошибка загрузки картинки:", error);
                        if (quillEditor) {
                            quillEditor.deleteText(startIdx, tempText.length);
-                           let errorMsg = '❌ Ошибка соединения с Catbox.';
-                           quillEditor.insertText(startIdx, errorMsg);
+                           quillEditor.insertText(startIdx, `❌ Ошибка соединения с Postimages.`);
                        }
                    }
                };
