@@ -131,7 +131,7 @@
     .tree-node .children.open { max-height: 2000px; opacity: 1; }
     .empty-tree { padding: 20px 16px; text-align: center; color: var(--text-light); font-size: 0.85rem; }
 
-    /* Стили для Drag&Drop в меню */
+    /* Drag&Drop */
     .node-label.dragging { opacity: 0.4; }
     .node-label.drop-target { background-color: var(--accent); color: #fff; border-radius: var(--radius-sm); }
     .node-label.drop-target .icon, .node-label.drop-target .title, .node-label.drop-target .toggle { color: #fff; }
@@ -346,7 +346,7 @@
 
     let data = null, selectedId = null, searchQuery = '', nextId = 100, isAdmin = false, editingId = null;
     const ADMIN_PASSWORD = 'admin123';
-    const expanded = new Set();
+    const expanded = new Map(); // ИЗМЕНЕНО: Map для хранения 3-х состояний
 
     function generateId() { return 'n' + (nextId++); }
     function deepClone(obj) { return JSON.parse(JSON.stringify(obj)); }
@@ -425,7 +425,7 @@
     }
 
     // ============================================================
-    // 2. РЕНДЕРИНГ ДЕРЕВА
+    // 2. РЕНДЕРИНГ ДЕРЕВА (ИСПРАВЛЕНА ЛОГИКА ПАПОК)
     // ============================================================
     function renderTree() {
       const container = document.getElementById('treeContainer');
@@ -444,10 +444,17 @@
       container.querySelectorAll('.node-label').forEach(el => {
         el.addEventListener('click', function(e) {
           const id = this.dataset.id;
+          
           if (e.target.closest('.toggle')) {
             const node = findNode(data.sections, id);
             if (node && node.children) {
-              if (expanded.has(id)) expanded.delete(id); else expanded.add(id);
+              // ИЗМЕНЕНО: Переключаем состояние (true/false) в Map
+              const current = expanded.get(id);
+              if (current === true) {
+                expanded.set(id, false);
+              } else {
+                expanded.set(id, true);
+              }
               renderTree();
             }
             return;
@@ -472,7 +479,6 @@
         });
       });
 
-      // Инициализация перетаскивания (Drag&Drop) для перемещения файлов в папки
       if (isAdmin) {
         bindTreeDragDropEvents(container);
       }
@@ -501,11 +507,13 @@
       const isGroup = node.type === 'group' || (node.children && node.children.length > 0);
       const isActive = node.id === selectedId;
       
+      // ИЗМЕНЕНО: Приоритет ручного переключения
       let isExpanded = false;
       if (expanded.has(node.id)) {
-          isExpanded = true;
+        isExpanded = expanded.get(node.id);
       } else {
-          isExpanded = (isActive && isGroup) || (selectedId && isAncestor(node, selectedId)); 
+        // По умолчанию, раскрываем, если папка активна или содержит активный элемент
+        isExpanded = (isActive && isGroup) || (selectedId && isAncestor(node, selectedId));
       }
       
       const icon = isGroup ? (isExpanded ? 'fa-folder-open' : 'fa-folder') : (node.type === 'checklist' ? 'fa-check-square' : 'fa-file-alt');
@@ -543,14 +551,12 @@
     function bindTreeDragDropEvents(container) {
         let draggedId = null;
 
-        // Назначаем перетаскиваемые элементы (файлы/чек-листы)
         container.querySelectorAll('.node-label:not(.group-folder)').forEach(el => {
             el.setAttribute('draggable', 'true');
             el.addEventListener('dragstart', function(e) {
                 draggedId = this.dataset.id;
                 e.dataTransfer.setData('text/plain', this.dataset.id);
                 e.dataTransfer.effectAllowed = 'move';
-                // Небольшая задержка для корректного отображения класса
                 setTimeout(() => this.classList.add('dragging'), 0);
             });
             el.addEventListener('dragend', function(e) {
@@ -559,7 +565,6 @@
             });
         });
 
-        // Назначаем области для сброса (папки)
         container.querySelectorAll('.node-label.group-folder').forEach(el => {
             el.addEventListener('dragover', function(e) {
                 e.preventDefault();
@@ -571,7 +576,6 @@
                 this.classList.add('drop-target');
             });
             el.addEventListener('dragleave', function(e) {
-                // Защита от случайного срабатывания при переходе на дочерние элементы
                 if (e.target.closest('.node-label') !== this) return;
                 this.classList.remove('drop-target');
             });
@@ -586,21 +590,17 @@
                 const targetFolder = findNode(data.sections, targetFolderId);
 
                 if (!draggedNode || !targetFolder) return;
-                if (draggedNode.type === 'group') return; // Не даем перетаскивать папки (только файлы)
+                if (draggedNode.type === 'group') return;
                 if (targetFolder.type !== 'group') return;
 
-                // Проверяем, не лежит ли уже файл в этой папке
                 const parent = getParent(data.sections, draggedId);
                 if (parent && parent.id === targetFolderId) return;
 
-                // Убираем из текущего расположения
                 if (parent) {
                     parent.children = parent.children.filter(c => c.id !== draggedId);
                 } else {
                     data.sections = data.sections.filter(s => s.id !== draggedId);
                 }
-
-                // Добавляем в целевую папку
                 targetFolder.children.push(draggedNode);
 
                 saveData();
@@ -853,7 +853,6 @@
       const editorField = document.getElementById('editor-field');
       const container = document.getElementById('editor-container');
 
-      // Принудительно очищаем всё перед созданием
       if (quillEditor) {
         quillEditor = null;
       }
@@ -863,7 +862,6 @@
           toolbarContainer.remove();
       }
 
-      // ИСПРАВЛЕНИЕ: Защита от случайного закрытия при клике/движении мыши
       overlay.onclick = null;
       overlay.addEventListener('click', function(e) {
           if (e.target === this) closeModal();
@@ -1093,10 +1091,29 @@
       });
 
       document.getElementById('expandAllBtn').addEventListener('click', () => {
-        function openAll(nodes) { for (const n of nodes) { if (n.children) { expanded.add(n.id); openAll(n.children); } } }
-        openAll(data.sections); renderTree();
+        function rec(nodes) {
+            for (const n of nodes) {
+                if (n.children) {
+                    expanded.set(n.id, true);
+                    rec(n.children);
+                }
+            }
+        }
+        rec(data.sections);
+        renderTree();
       });
-      document.getElementById('collapseAllBtn').addEventListener('click', () => { expanded.clear(); renderTree(); });
+      document.getElementById('collapseAllBtn').addEventListener('click', () => {
+        function rec(nodes) {
+            for (const n of nodes) {
+                if (n.children) {
+                    expanded.set(n.id, false);
+                    rec(n.children);
+                }
+            }
+        }
+        rec(data.sections);
+        renderTree();
+      });
 
       const addBtn = document.getElementById('addSectionBtn');
       if (addBtn) {
