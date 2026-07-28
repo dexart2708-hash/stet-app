@@ -122,7 +122,7 @@
     .tree-node .node-label .toggle { margin-left: auto; color: var(--text-light); font-size: 0.65rem; transition: var(--transition); }
     .tree-node .node-label .toggle.open { transform: rotate(90deg); }
     
-    .tree-node .node-actions { display: flex; align-items: center; gap: 4px; margin-left: 4px; flex-shrink: 0; background: var(--sidebar-bg); padding-left: 4px; } /* ИЗМЕНЕНО: Всегда показывать */
+    .tree-node .node-actions { display: flex; align-items: center; gap: 4px; margin-left: 4px; flex-shrink: 0; background: var(--sidebar-bg); padding-left: 4px; }
     .tree-node .node-actions button { background: none; border: none; color: var(--text-light); cursor: pointer; font-size: 0.8rem; padding: 2px 4px; border-radius: 4px; transition: var(--transition); }
     .tree-node .node-actions button:hover { background: rgba(0,0,0,0.05); color: var(--primary); }
     .tree-node .node-actions button.danger:hover { color: #e74c3c; background: rgba(231, 76, 60, 0.10); }
@@ -412,7 +412,7 @@
     }
 
     // ============================================================
-    // 2. РЕНДЕРИНГ ДЕРЕВА
+    // 2. РЕНДЕРИНГ ДЕРЕВА (ИСПРАВЛЕНА ЛОГИКА ПАПОК)
     // ============================================================
     function renderTree() {
       const container = document.getElementById('treeContainer');
@@ -431,8 +431,8 @@
       container.querySelectorAll('.node-label').forEach(el => {
         el.addEventListener('click', function(e) {
           const id = this.dataset.id;
+          // Если кликнули на стрелку - просто переключаем состояние
           if (e.target.closest('.toggle')) {
-            // ЛОГИКА ПЕРЕКЛЮЧЕНИЯ СТРЕЛОЧКИ
             const node = findNode(data.sections, id);
             if (node && node.children) {
               if (expanded.has(id)) expanded.delete(id); else expanded.add(id);
@@ -440,7 +440,10 @@
             }
             return;
           }
+          // Если кликнули на кнопки действий - игнорируем выделение
           if (e.target.closest('.node-actions')) return;
+          
+          // Иначе - выбираем раздел
           selectNode(id);
         });
       });
@@ -484,12 +487,11 @@
       const isGroup = node.type === 'group' || (node.children && node.children.length > 0);
       const isActive = node.id === selectedId;
       
-      // ИСПРАВЛЕНИЕ: Сначала проверяем ручное переключение, потом активность
       let isExpanded = false;
       if (expanded.has(node.id)) {
-          isExpanded = true; // Если есть в наборе, значит развернуто вручную
+          isExpanded = true; // Если кликали стрелкой вручную
       } else {
-          isExpanded = (isActive && isGroup); // По умолчанию активная папка развернута
+          isExpanded = (isActive && isGroup); // По умолчанию выделенная папка развернута
       }
       
       const icon = isGroup ? (isExpanded ? 'fa-folder-open' : 'fa-folder') : (node.type === 'checklist' ? 'fa-check-square' : 'fa-file-alt');
@@ -744,7 +746,7 @@
     }
 
     // ============================================================
-    // 6. РЕДАКТОР QUIL
+    // 6. НАДЕЖНАЯ ИНИЦИАЛИЗАЦИЯ РЕДАКТОРА QUIL
     // ============================================================
     let quillEditor = null;
 
@@ -761,14 +763,16 @@
       const editorField = document.getElementById('editor-field');
       const container = document.getElementById('editor-container');
 
+      // Принудительно очищаем всё перед созданием
       if (quillEditor) {
         quillEditor = null;
       }
-      const oldToolbar = container.previousElementSibling;
-      if (oldToolbar && oldToolbar.classList.contains('ql-toolbar')) {
-        oldToolbar.remove();
-      }
       container.innerHTML = ''; 
+      // Quill вставляет свой тулбар перед контейнером. Удаляем его, если он застрял.
+      const toolbarContainer = container.parentElement.querySelector('.ql-toolbar');
+      if (toolbarContainer) {
+          toolbarContainer.remove();
+      }
 
       document.getElementById('editType').onchange = function() {
         const t = this.value;
@@ -804,11 +808,12 @@
        const container = document.getElementById('editor-container');
        if (!container) return;
        
-       const oldToolbar = container.previousElementSibling;
-       if (oldToolbar && oldToolbar.classList.contains('ql-toolbar')) {
-           oldToolbar.remove();
-       }
+       // Очищаем контейнер снова на всякий случай
        container.innerHTML = ''; 
+       const toolbarContainer = container.parentElement.querySelector('.ql-toolbar');
+       if (toolbarContainer) {
+           toolbarContainer.remove();
+       }
        
        try {
            const toolbarConfig = [
@@ -819,6 +824,7 @@
                ['clean']
            ];
 
+           // Создаем новый экземпляр Quill
            quillEditor = new Quill(container, {
                modules: { toolbar: toolbarConfig },
                theme: 'snow'
@@ -832,7 +838,7 @@
            }
        } catch (e) {
            console.error("Ошибка создания Quill:", e);
-           container.innerHTML = `<p style="color:#e74c3c;padding:20px;">Не удалось загрузить визуальный редактор.</p>`;
+           container.innerHTML = `<p style="color:#e74c3c;padding:20px;">Не удалось загрузить визуальный редактор. Проверьте подключение к интернету.</p>`;
        }
     }
 
