@@ -341,7 +341,7 @@
 
     let data = null, selectedId = null, searchQuery = '', nextId = 100, isAdmin = false, editingId = null;
     const ADMIN_PASSWORD = 'admin123';
-    const expanded = new Set(); // Хранит id папок, где состояние было переключено вручную
+    const expanded = new Set(); // Хранит id папок, которые раскрыты вручную стрелочкой
 
     function generateId() { return 'n' + (nextId++); }
     function deepClone(obj) { return JSON.parse(JSON.stringify(obj)); }
@@ -362,6 +362,15 @@
         }
       }
       return null;
+    }
+    // Проверка: является ли узел предком другого узла по id
+    function isAncestor(node, targetId) {
+      if (!node.children || node.children.length === 0) return false;
+      for (const child of node.children) {
+        if (child.id === targetId) return true;
+        if (isAncestor(child, targetId)) return true;
+      }
+      return false;
     }
 
     function updateSyncStatus(status, text) {
@@ -431,7 +440,8 @@
       container.querySelectorAll('.node-label').forEach(el => {
         el.addEventListener('click', function(e) {
           const id = this.dataset.id;
-          // Если кликнули на стрелку - просто переключаем состояние
+          
+          // Если кликнули на стрелку - переключаем состояние (не снимая выделения!)
           if (e.target.closest('.toggle')) {
             const node = findNode(data.sections, id);
             if (node && node.children) {
@@ -440,10 +450,10 @@
             }
             return;
           }
-          // Если кликнули на кнопки действий - игнорируем выделение
+          // Если кликнули на кнопки действий - игнорируем выбор
           if (e.target.closest('.node-actions')) return;
           
-          // Иначе - выбираем раздел
+          // Иначе - выбираем/открываем раздел
           selectNode(id);
         });
       });
@@ -487,11 +497,12 @@
       const isGroup = node.type === 'group' || (node.children && node.children.length > 0);
       const isActive = node.id === selectedId;
       
+      // ИСПРАВЛЕНИЕ: Папка раскрывается, если нажата стрелочка, если она активна, ИЛИ если внутри выбран файл.
       let isExpanded = false;
       if (expanded.has(node.id)) {
-          isExpanded = true; // Если кликали стрелкой вручную
+          isExpanded = true; // Ручное управление стрелочкой
       } else {
-          isExpanded = (isActive && isGroup); // По умолчанию выделенная папка развернута
+          isExpanded = (isActive && isGroup) || (selectedId && isAncestor(node, selectedId)); 
       }
       
       const icon = isGroup ? (isExpanded ? 'fa-folder-open' : 'fa-folder') : (node.type === 'checklist' ? 'fa-check-square' : 'fa-file-alt');
@@ -768,7 +779,6 @@
         quillEditor = null;
       }
       container.innerHTML = ''; 
-      // Quill вставляет свой тулбар перед контейнером. Удаляем его, если он застрял.
       const toolbarContainer = container.parentElement.querySelector('.ql-toolbar');
       if (toolbarContainer) {
           toolbarContainer.remove();
@@ -808,7 +818,6 @@
        const container = document.getElementById('editor-container');
        if (!container) return;
        
-       // Очищаем контейнер снова на всякий случай
        container.innerHTML = ''; 
        const toolbarContainer = container.parentElement.querySelector('.ql-toolbar');
        if (toolbarContainer) {
@@ -824,7 +833,6 @@
                ['clean']
            ];
 
-           // Создаем новый экземпляр Quill
            quillEditor = new Quill(container, {
                modules: { toolbar: toolbarConfig },
                theme: 'snow'
@@ -859,19 +867,26 @@
         else if (type === 'checklist') newNode.items = [{ time: '09:00', task: 'Пример задачи' }];
         else if (type === 'group') newNode.children = [];
         
-        let parent = null;
-        if (selectedId) {
-          const sel = findNode(data.sections, selectedId);
-          if (sel && sel.type === 'group') parent = sel;
-          else {
-            const p = getParent(data.sections, selectedId);
-            if (p) parent = p;
-          }
-        }
-        if (parent && parent.type === 'group') {
-          parent.children.push(newNode);
+        // ИСПРАВЛЕНИЕ: Папки создаются ТОЛЬКО в корне. Файлы - в текущей папке.
+        if (type === 'group') {
+            // Папка всегда в корне!
+            data.sections.push(newNode);
         } else {
-          data.sections.push(newNode);
+            // Текст или Чек-лист. Проверяем, выбрана ли папка для вложения.
+            let parent = null;
+            if (selectedId) {
+              const sel = findNode(data.sections, selectedId);
+              if (sel && sel.type === 'group') parent = sel;
+              else {
+                const p = getParent(data.sections, selectedId);
+                if (p) parent = p;
+              }
+            }
+            if (parent && parent.type === 'group') {
+              parent.children.push(newNode);
+            } else {
+              data.sections.push(newNode);
+            }
         }
         
         saveData(); renderTree(); selectNode(newNode.id);
