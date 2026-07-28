@@ -125,12 +125,10 @@
     .tree-node .node-actions button:hover { background: rgba(0,0,0,0.05); color: var(--primary); }
     .tree-node .node-actions button.danger:hover { color: #e74c3c; background: rgba(231, 76, 60, 0.10); }
 
-    /* Плавное раскрытие/сворачивание */
     .tree-node .children { padding-left: 18px; overflow: hidden; max-height: 0; transition: max-height 0.35s ease, opacity 0.25s ease; opacity: 0; }
     .tree-node .children.open { max-height: 2000px; opacity: 1; }
     .empty-tree { padding: 20px 16px; text-align: center; color: var(--text-light); font-size: 0.85rem; }
 
-    /* Стили DnD для дерева */
     .node-label.dragging { opacity: 0.4; }
     .node-label.drop-target { background-color: var(--accent); color: #fff; border-radius: var(--radius-sm); }
     .node-label.drop-target .icon, .node-label.drop-target .title, .node-label.drop-target .toggle { color: #fff; }
@@ -167,7 +165,7 @@
     .checklist-item .task .checkbox.checked::after { content: "✓"; color: #fff; font-size: 0.8rem; }
 
     .edit-checklist { display: flex; flex-direction: column; gap: 6px; margin-top: 4px; }
-    .edit-row { display: flex; align-items: center; gap: 6px; background: var(--bg-panel); padding: 6px; border-radius: var(--radius-sm); border: 1px solid transparent; transition: margin-top 0.25s ease, opacity 0.25s ease, border-color 0.2s; touch-action: none; }
+    .edit-row { display: flex; align-items: center; gap: 6px; background: var(--bg-panel); padding: 6px; border-radius: var(--radius-sm); border: 1px solid transparent; transition: margin-top 0.2s ease, opacity 0.2s ease, border-color 0.2s; touch-action: none; }
     .edit-row.drag-over { border-color: var(--accent); background: var(--sidebar-active); transform: scale(1.01); }
     .edit-row.dragging { opacity: 0.5; background: #e0e7ff; }
     .edit-row input[type="text"] { flex: 1; padding: 8px 10px; border: 1px solid var(--border); border-radius: 6px; font-size: 0.85rem; font-family: var(--font); background: #fff; min-width: 0; outline: none; }
@@ -541,10 +539,6 @@
     // ============================================================
     function bindTreeDragDropEvents(container) {
         let draggedId = null;
-        let dropTargetEl = null;
-        let dropTargetId = null;
-        let dropPosition = 'inside'; // inside, before, after
-
         container.querySelectorAll('.node-label').forEach(el => {
             el.setAttribute('draggable', 'true');
             el.addEventListener('dragstart', function(e) {
@@ -556,7 +550,7 @@
             el.addEventListener('dragend', function(e) {
                 this.classList.remove('dragging');
                 document.querySelectorAll('.node-label.drop-target').forEach(el => el.classList.remove('drop-target'));
-                draggedId = null; dropTargetEl = null;
+                draggedId = null;
             });
         });
 
@@ -564,59 +558,42 @@
             el.addEventListener('dragover', function(e) {
                 e.preventDefault();
                 e.dataTransfer.dropEffect = 'move';
-                
-                // Удаляем старые классы
                 document.querySelectorAll('.node-label.drop-target').forEach(label => label.classList.remove('drop-target'));
                 this.classList.add('drop-target');
-                dropTargetEl = this;
-                dropTargetId = this.dataset.id;
-            });
-            
-            el.addEventListener('dragenter', function(e) {
-                e.preventDefault();
-                this.classList.add('drop-target');
-                dropTargetEl = this;
-                dropTargetId = this.dataset.id;
             });
             
             el.addEventListener('dragleave', function(e) {
                 if (e.target.closest('.node-label') !== this) return;
                 this.classList.remove('drop-target');
-                if(dropTargetEl === this) dropTargetEl = null;
             });
 
             el.addEventListener('drop', function(e) {
                 e.preventDefault();
                 this.classList.remove('drop-target');
-                
                 if (!draggedId || draggedId === this.dataset.id) return;
 
                 const draggedNode = findNode(data.sections, draggedId);
-                const targetNode = findNode(data.sections, dropTargetId);
-                
+                const targetNode = findNode(data.sections, this.dataset.id);
                 if (!draggedNode || !targetNode) return;
 
                 const parent = getParent(data.sections, draggedId);
-
-                // Убираем из текущего расположения
                 if (parent) {
                     parent.children = parent.children.filter(c => c.id !== draggedId);
                 } else {
                     data.sections = data.sections.filter(s => s.id !== draggedId);
                 }
 
-                // Добавляем в целевое расположение
-                // 1. Если целевой элемент имеет детей (папка) -> внутри
+                // Если у целевого элемента есть дети (папка) -> помещаем внутрь
                 if (targetNode.children) {
                     targetNode.children.push(draggedNode);
                 } else {
-                    // 2. Если целевой элемент - файл -> вставляем после него на том же уровне
-                    const targetParent = getParent(data.sections, dropTargetId);
+                    // Иначе вставляем ПОСЛЕ целевого элемента на том же уровне
+                    const targetParent = getParent(data.sections, this.dataset.id);
                     if (targetParent) {
-                        const targetIdx = targetParent.children.findIndex(c => c.id === dropTargetId);
+                        const targetIdx = targetParent.children.findIndex(c => c.id === this.dataset.id);
                         targetParent.children.splice(targetIdx + 1, 0, draggedNode);
                     } else {
-                        const targetIdx = data.sections.findIndex(s => s.id === dropTargetId);
+                        const targetIdx = data.sections.findIndex(s => s.id === this.dataset.id);
                         data.sections.splice(targetIdx + 1, 0, draggedNode);
                     }
                 }
@@ -703,7 +680,8 @@
       const items = node.items || [];
       for (let i = 0; i < items.length; i++) {
         const item = items[i];
-        html += `<div class="edit-row" data-index="${i}">`;
+        // Добавлено draggable="true" прямо в HTML строку
+        html += `<div class="edit-row" data-index="${i}" draggable="true">`;
         html += `<span class="drag-handle"><i class="fas fa-grip-vertical"></i></span>`;
         html += `<input class="time-input" type="text" value="${escapeHtml(item.time)}" placeholder="Время" data-index="${i}" data-field="time" />`;
         html += `<input class="flex-text" type="text" value="${escapeHtml(item.task)}" placeholder="Задача" data-index="${i}" data-field="task" />`;
@@ -780,59 +758,83 @@
     }
 
     // ============================================================
-    // 6. ПЛАВНЫЙ DRAG AND DROP (Для чек-листов)
+    // 6. ПЛАВНЫЙ DRAG AND DROP (HTML5 Native) для чек-листов
     // ============================================================
-    let draggedItem = null;
     function enableDragAndDrop(list) {
-      list.querySelectorAll('.edit-row').forEach(row => {
-        row.addEventListener('mousedown', onDragStart);
-        row.addEventListener('touchstart', onDragStart, { passive: true });
-      });
-      document.removeEventListener('mousemove', onDragMove);
-      document.removeEventListener('mouseup', onDragEnd);
-      document.removeEventListener('touchmove', onDragMove);
-      document.removeEventListener('touchend', onDragEnd);
-      document.addEventListener('mousemove', onDragMove);
-      document.addEventListener('mouseup', onDragEnd);
-      document.addEventListener('touchmove', onDragMove, { passive: true });
-      document.addEventListener('touchend', onDragEnd);
-    }
-    function onDragStart(e) {
-      const row = e.currentTarget;
-      if (e.target.closest('input') || e.target.closest('button')) return;
-      draggedItem = row; draggedItem.classList.add('dragging');
-    }
-    function onDragMove(e) {
-      if (!draggedItem) return;
-      e.preventDefault();
-      let clientY = e.clientY;
-      if (e.type === 'touchmove' && e.touches.length > 0) clientY = e.touches[0].clientY;
-      const container = draggedItem.parentElement;
-      const rows = [...container.querySelectorAll('.edit-row:not(.dragging)')];
-      let closestElement = null, closestDist = Number.POSITIVE_INFINITY;
-      rows.forEach(row => {
-        const rect = row.getBoundingClientRect();
-        const dist = clientY - (rect.top + rect.height / 2);
-        if (dist < 0 && dist > closestDist) { closestDist = dist; closestElement = row; }
-      });
-      if (closestElement) container.insertBefore(draggedItem, closestElement);
-      else container.appendChild(draggedItem);
-    }
-    function onDragEnd(e) {
-      if (draggedItem) {
-        draggedItem.classList.remove('dragging');
-        const container = draggedItem.parentElement;
-        const newOrder = [];
-        container.querySelectorAll('.edit-row').forEach(row => {
-          const index = parseInt(row.dataset.index);
-          const node = findNode(data.sections, editingId);
-          if (node && node.items && node.items[index]) newOrder.push(node.items[index]);
+        let draggedItem = null;
+        const rows = list.querySelectorAll('.edit-row');
+        rows.forEach(row => {
+            row.addEventListener('dragstart', function(e) {
+                draggedItem = this;
+                e.dataTransfer.effectAllowed = 'move';
+                e.dataTransfer.setData('text/plain', this.dataset.index);
+                requestAnimationFrame(() => this.classList.add('dragging'));
+            });
+
+            row.addEventListener('dragend', function(e) {
+                this.classList.remove('dragging');
+                draggedItem = null;
+                // Не перерисовываем страницу!
+            });
+
+            row.addEventListener('dragover', function(e) {
+                e.preventDefault();
+                e.dataTransfer.dropEffect = 'move';
+                if (!draggedItem) return;
+
+                const container = this.parentElement;
+                const siblings = [...container.querySelectorAll('.edit-row:not(.dragging)')];
+                let closest = null;
+                let closestDist = Number.POSITIVE_INFINITY;
+                const mouseY = e.clientY;
+
+                siblings.forEach(sib => {
+                    const box = sib.getBoundingClientRect();
+                    const dist = mouseY - (box.top + box.height / 2);
+                    if (dist < 0 && dist > closestDist) {
+                        closestDist = dist;
+                        closest = sib;
+                    }
+                });
+
+                if (closest) {
+                    container.insertBefore(draggedItem, closest);
+                } else {
+                    container.appendChild(draggedItem);
+                }
+            });
+
+            row.addEventListener('drop', function(e) {
+                e.preventDefault();
+                if (!draggedItem) return;
+
+                const container = draggedItem.parentElement;
+                
+                // 1. Синхронизируем данные с новым порядком в DOM
+                const newOrder = [];
+                container.querySelectorAll('.edit-row').forEach(row => {
+                    const idx = parseInt(row.dataset.index);
+                    const node = findNode(data.sections, editingId);
+                    if (node && node.items && node.items[idx]) newOrder.push(node.items[idx]);
+                });
+                const node = findNode(data.sections, editingId);
+                if (node && newOrder.length > 0) {
+                    node.items = newOrder;
+                    saveData();
+                }
+
+                // 2. Обновляем индексы в DOM, чтобы кнопки работали правильно
+                const allRows = container.querySelectorAll('.edit-row');
+                allRows.forEach((row, idx) => {
+                    row.dataset.index = idx;
+                    row.querySelectorAll('.move-up, .move-down, .remove-btn, .time-input, .flex-text').forEach(el => {
+                        el.dataset.index = idx;
+                    });
+                });
+
+                // 3. НЕ ПЕРЕРИСОВЫВАЕМ КОНТЕНТ (главная фишка плавности)
+            });
         });
-        const node = findNode(data.sections, editingId);
-        if (node && newOrder.length > 0) { node.items = newOrder; saveData(); }
-        draggedItem = null;
-        renderContent(editingId);
-      }
     }
 
     // ============================================================
@@ -855,7 +857,6 @@
       const editorField = document.getElementById('editor-field');
       const container = document.getElementById('editor-container');
 
-      // Принудительно очищаем всё перед созданием
       if (quillEditor) {
         quillEditor = null;
       }
@@ -887,7 +888,7 @@
       const type = document.getElementById('editType').value;
       if (type === 'text') {
         editorField.style.display = 'block';
-        setTimeout(() => initQuill(), 150); // Задержка для надежности DOM
+        setTimeout(() => initQuill(), 150);
       } else {
         editorField.style.display = 'none';
       }
@@ -959,11 +960,10 @@
         if (type === 'text') newNode.content = contentToSave;
         else if (type === 'checklist') newNode.items = [{ time: '09:00', task: 'Пример задачи' }];
         
-        // Добавление в корень или в текущий раздел
         let parent = null;
         if (selectedId) {
           const sel = findNode(data.sections, selectedId);
-          if (sel && sel.children !== undefined) parent = sel; // Любой, у кого есть дети
+          if (sel && sel.children !== undefined) parent = sel;
         }
         if (parent) {
           parent.children = parent.children || [];
