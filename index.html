@@ -36,8 +36,6 @@
       --radius-sm: 8px;
       --transition: 0.25s ease;
       --font: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      --badge-bg: var(--accent);
-      --badge-text: #fff;
       --header-bg: var(--primary);
       --header-text: #ffffff;
     }
@@ -127,11 +125,12 @@
     .tree-node .node-actions button:hover { background: rgba(0,0,0,0.05); color: var(--primary); }
     .tree-node .node-actions button.danger:hover { color: #e74c3c; background: rgba(231, 76, 60, 0.10); }
 
-    .tree-node .children { padding-left: 18px; overflow: hidden; max-height: 0; transition: max-height 0.3s ease; opacity: 0; }
+    /* Плавное раскрытие/сворачивание */
+    .tree-node .children { padding-left: 18px; overflow: hidden; max-height: 0; transition: max-height 0.35s ease, opacity 0.25s ease; opacity: 0; }
     .tree-node .children.open { max-height: 2000px; opacity: 1; }
     .empty-tree { padding: 20px 16px; text-align: center; color: var(--text-light); font-size: 0.85rem; }
 
-    /* Drag&Drop */
+    /* Стили DnD для дерева */
     .node-label.dragging { opacity: 0.4; }
     .node-label.drop-target { background-color: var(--accent); color: #fff; border-radius: var(--radius-sm); }
     .node-label.drop-target .icon, .node-label.drop-target .title, .node-label.drop-target .toggle { color: #fff; }
@@ -160,7 +159,7 @@
     .content-render img { max-width: 100%; height: auto; border-radius: var(--radius-sm); margin: 10px 0; }
     
     .checklist { display: flex; flex-direction: column; gap: 4px; margin-bottom: 1rem; }
-    .checklist-item { display: flex; align-items: stretch; border-radius: var(--radius-sm); transition: var(--transition); border: 1px solid var(--border); overflow: hidden; background: var(--bg-main); box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
+    .checklist-item { display: flex; align-items: stretch; border-radius: var(--radius-sm); transition: all 0.2s ease; border: 1px solid var(--border); overflow: hidden; background: var(--bg-main); box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
     .checklist-item .time { flex: 0 0 80px; font-weight: 600; color: #fff; background: var(--primary); padding: 10px 10px; font-size: 0.75rem; display: flex; align-items: center; justify-content: center; }
     .checklist-item .task { flex: 1; padding: 10px 14px; display: flex; align-items: center; background: var(--bg-main); font-size: 0.85rem; line-height: 1.4; }
     .checklist-item .task .checkbox { margin-right: 12px; flex-shrink: 0; width: 20px; height: 20px; border: 2px solid var(--border); border-radius: 4px; cursor: pointer; background: #fff; display: flex; align-items: center; justify-content: center; }
@@ -168,8 +167,8 @@
     .checklist-item .task .checkbox.checked::after { content: "✓"; color: #fff; font-size: 0.8rem; }
 
     .edit-checklist { display: flex; flex-direction: column; gap: 6px; margin-top: 4px; }
-    .edit-row { display: flex; align-items: center; gap: 6px; background: var(--bg-panel); padding: 6px; border-radius: var(--radius-sm); border: 1px solid transparent; transition: 0.2s; touch-action: none; }
-    .edit-row.drag-over { border-color: var(--accent); background: var(--sidebar-active); }
+    .edit-row { display: flex; align-items: center; gap: 6px; background: var(--bg-panel); padding: 6px; border-radius: var(--radius-sm); border: 1px solid transparent; transition: margin-top 0.25s ease, opacity 0.25s ease, border-color 0.2s; touch-action: none; }
+    .edit-row.drag-over { border-color: var(--accent); background: var(--sidebar-active); transform: scale(1.01); }
     .edit-row.dragging { opacity: 0.5; background: #e0e7ff; }
     .edit-row input[type="text"] { flex: 1; padding: 8px 10px; border: 1px solid var(--border); border-radius: 6px; font-size: 0.85rem; font-family: var(--font); background: #fff; min-width: 0; outline: none; }
     .edit-row input.time-input { flex: 0 0 70px; text-align: center; }
@@ -291,7 +290,6 @@
           <select id="editType">
             <option value="text">Текст / Инструкция (с таблицами и фото)</option>
             <option value="checklist">Чек-лист (список задач)</option>
-            <option value="group">Группа (для вложенных папок)</option>
           </select>
         </div>
         <div class="field" id="editor-field">
@@ -346,7 +344,7 @@
 
     let data = null, selectedId = null, searchQuery = '', nextId = 100, isAdmin = false, editingId = null;
     const ADMIN_PASSWORD = 'admin123';
-    const expanded = new Map(); // ИЗМЕНЕНО: Map для хранения 3-х состояний
+    const expanded = new Map();
 
     function generateId() { return 'n' + (nextId++); }
     function deepClone(obj) { return JSON.parse(JSON.stringify(obj)); }
@@ -425,7 +423,7 @@
     }
 
     // ============================================================
-    // 2. РЕНДЕРИНГ ДЕРЕВА (ИСПРАВЛЕНА ЛОГИКА ПАПОК)
+    // 2. РЕНДЕРИНГ ДЕРЕВА
     // ============================================================
     function renderTree() {
       const container = document.getElementById('treeContainer');
@@ -444,17 +442,12 @@
       container.querySelectorAll('.node-label').forEach(el => {
         el.addEventListener('click', function(e) {
           const id = this.dataset.id;
-          
           if (e.target.closest('.toggle')) {
             const node = findNode(data.sections, id);
             if (node && node.children) {
-              // ИЗМЕНЕНО: Переключаем состояние (true/false) в Map
               const current = expanded.get(id);
-              if (current === true) {
-                expanded.set(id, false);
-              } else {
-                expanded.set(id, true);
-              }
+              if (current === true) expanded.set(id, false);
+              else expanded.set(id, true);
               renderTree();
             }
             return;
@@ -504,21 +497,19 @@
     }
 
     function renderNode(node) {
-      const isGroup = node.type === 'group' || (node.children && node.children.length > 0);
+      const isGroup = node.children && node.children.length > 0;
       const isActive = node.id === selectedId;
       
-      // ИЗМЕНЕНО: Приоритет ручного переключения
       let isExpanded = false;
       if (expanded.has(node.id)) {
         isExpanded = expanded.get(node.id);
       } else {
-        // По умолчанию, раскрываем, если папка активна или содержит активный элемент
         isExpanded = (isActive && isGroup) || (selectedId && isAncestor(node, selectedId));
       }
       
       const icon = isGroup ? (isExpanded ? 'fa-folder-open' : 'fa-folder') : (node.type === 'checklist' ? 'fa-check-square' : 'fa-file-alt');
       
-      let html = `<div class="tree-node" data-id="${node.id}"><div class="node-label ${isActive ? 'active' : ''}${isGroup ? ' group-folder' : ''}" data-id="${node.id}">`;
+      let html = `<div class="tree-node" data-id="${node.id}"><div class="node-label ${isActive ? 'active' : ''}" data-id="${node.id}">`;
       html += `<span class="icon"><i class="fas ${icon}"></i></span><span class="title">${escapeHtml(node.title)}</span>`;
       
       if (isGroup) html += `<span class="toggle ${isExpanded ? 'open' : ''}"><i class="fas fa-chevron-right"></i></span>`;
@@ -546,12 +537,15 @@
     }
 
     // ============================================================
-    // 3. DRAG & DROP ДЛЯ БОКОВОГО МЕНЮ
+    // 3. DRAG & DROP (Глобальное перемещение разделов)
     // ============================================================
     function bindTreeDragDropEvents(container) {
         let draggedId = null;
+        let dropTargetEl = null;
+        let dropTargetId = null;
+        let dropPosition = 'inside'; // inside, before, after
 
-        container.querySelectorAll('.node-label:not(.group-folder)').forEach(el => {
+        container.querySelectorAll('.node-label').forEach(el => {
             el.setAttribute('draggable', 'true');
             el.addEventListener('dragstart', function(e) {
                 draggedId = this.dataset.id;
@@ -562,49 +556,72 @@
             el.addEventListener('dragend', function(e) {
                 this.classList.remove('dragging');
                 document.querySelectorAll('.node-label.drop-target').forEach(el => el.classList.remove('drop-target'));
+                draggedId = null; dropTargetEl = null;
             });
         });
 
-        container.querySelectorAll('.node-label.group-folder').forEach(el => {
+        container.querySelectorAll('.node-label').forEach(el => {
             el.addEventListener('dragover', function(e) {
                 e.preventDefault();
                 e.dataTransfer.dropEffect = 'move';
+                
+                // Удаляем старые классы
+                document.querySelectorAll('.node-label.drop-target').forEach(label => label.classList.remove('drop-target'));
                 this.classList.add('drop-target');
+                dropTargetEl = this;
+                dropTargetId = this.dataset.id;
             });
+            
             el.addEventListener('dragenter', function(e) {
                 e.preventDefault();
                 this.classList.add('drop-target');
+                dropTargetEl = this;
+                dropTargetId = this.dataset.id;
             });
+            
             el.addEventListener('dragleave', function(e) {
                 if (e.target.closest('.node-label') !== this) return;
                 this.classList.remove('drop-target');
+                if(dropTargetEl === this) dropTargetEl = null;
             });
+
             el.addEventListener('drop', function(e) {
                 e.preventDefault();
                 this.classList.remove('drop-target');
-
-                const targetFolderId = this.dataset.id;
-                if (!draggedId || draggedId === targetFolderId) return;
+                
+                if (!draggedId || draggedId === this.dataset.id) return;
 
                 const draggedNode = findNode(data.sections, draggedId);
-                const targetFolder = findNode(data.sections, targetFolderId);
-
-                if (!draggedNode || !targetFolder) return;
-                if (draggedNode.type === 'group') return;
-                if (targetFolder.type !== 'group') return;
+                const targetNode = findNode(data.sections, dropTargetId);
+                
+                if (!draggedNode || !targetNode) return;
 
                 const parent = getParent(data.sections, draggedId);
-                if (parent && parent.id === targetFolderId) return;
 
+                // Убираем из текущего расположения
                 if (parent) {
                     parent.children = parent.children.filter(c => c.id !== draggedId);
                 } else {
                     data.sections = data.sections.filter(s => s.id !== draggedId);
                 }
-                targetFolder.children.push(draggedNode);
+
+                // Добавляем в целевое расположение
+                // 1. Если целевой элемент имеет детей (папка) -> внутри
+                if (targetNode.children) {
+                    targetNode.children.push(draggedNode);
+                } else {
+                    // 2. Если целевой элемент - файл -> вставляем после него на том же уровне
+                    const targetParent = getParent(data.sections, dropTargetId);
+                    if (targetParent) {
+                        const targetIdx = targetParent.children.findIndex(c => c.id === dropTargetId);
+                        targetParent.children.splice(targetIdx + 1, 0, draggedNode);
+                    } else {
+                        const targetIdx = data.sections.findIndex(s => s.id === dropTargetId);
+                        data.sections.splice(targetIdx + 1, 0, draggedNode);
+                    }
+                }
 
                 saveData();
-                draggedId = null;
                 renderTree();
                 if (selectedId) renderContent(selectedId);
             });
@@ -623,7 +640,7 @@
       if (!isAdmin && editingId === node.id) editingId = null;
 
       let html = `<div class="section-header"><div class="title-group"><h2>${escapeHtml(node.title)}</h2>`;
-      html += `<span class="type-badge">${node.type === 'checklist' ? 'Чек-лист' : node.type === 'group' ? 'Группа' : 'Текст'}</span>`;
+      html += `<span class="type-badge">${node.type === 'checklist' ? 'Чек-лист' : 'Текст'}</span>`;
       html += `</div><div class="content-actions">`;
       
       if (node.type === 'checklist') {
@@ -651,21 +668,6 @@
         }
       } else if (node.type === 'text') { 
         html += node.content || '<p style="color:var(--text-light);font-style:italic;">Нажмите "Редактировать раздел", чтобы заполнить инструкцию.</p>'; 
-      }
-      else if (node.type === 'group') { 
-        if (node.children && node.children.length > 0) {
-          html += `<p style="color:var(--text-light);font-style:italic;margin-bottom:10px;">Это папка. Кликните на подраздел в левом меню:</p><ul>`;
-          for (const child of node.children) {
-            const icon = child.type === 'checklist' ? 'fa-check-square' : child.type === 'group' ? 'fa-folder' : 'fa-file-alt';
-            html += `<li style="cursor:pointer;padding:4px 0;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;" onclick="selectNode('${child.id}')">
-              <i class="fas ${icon}" style="color:var(--primary);width:18px;"></i>
-              <span>${escapeHtml(child.title)}</span>
-            </li>`;
-          }
-          html += `</ul>`;
-        } else {
-          html += `<p style="color:var(--text-light);font-style:italic;">Это пустая папка. Выберите её в левом меню и нажмите "+ Добавить", чтобы создать внутри подраздел.</p>`;
-        }
       }
       html += `</div>`;
       panel.innerHTML = html;
@@ -778,7 +780,7 @@
     }
 
     // ============================================================
-    // 6. DRAG AND DROP (Для чек-листов)
+    // 6. ПЛАВНЫЙ DRAG AND DROP (Для чек-листов)
     // ============================================================
     let draggedItem = null;
     function enableDragAndDrop(list) {
@@ -853,6 +855,7 @@
       const editorField = document.getElementById('editor-field');
       const container = document.getElementById('editor-container');
 
+      // Принудительно очищаем всё перед созданием
       if (quillEditor) {
         quillEditor = null;
       }
@@ -875,7 +878,7 @@
         const t = this.value;
         if (t === 'text') {
           editorField.style.display = 'block';
-          initQuill();
+          setTimeout(() => initQuill(), 150);
         } else {
           editorField.style.display = 'none';
         }
@@ -884,7 +887,7 @@
       const type = document.getElementById('editType').value;
       if (type === 'text') {
         editorField.style.display = 'block';
-        initQuill();
+        setTimeout(() => initQuill(), 150); // Задержка для надежности DOM
       } else {
         editorField.style.display = 'none';
       }
@@ -946,29 +949,27 @@
       if (!title) { alert('Введите название раздела.'); return; }
       const type = document.getElementById('editType').value;
 
+      let contentToSave = '';
+      if (type === 'text') {
+        contentToSave = quillEditor ? quillEditor.root.innerHTML : '';
+      }
+
       if (id === 'new') {
         const newNode = { id: generateId(), title: title, type: type };
-        if (type === 'text') newNode.content = quillEditor ? quillEditor.root.innerHTML : '';
+        if (type === 'text') newNode.content = contentToSave;
         else if (type === 'checklist') newNode.items = [{ time: '09:00', task: 'Пример задачи' }];
-        else if (type === 'group') newNode.children = [];
         
-        if (type === 'group') {
-            data.sections.push(newNode);
+        // Добавление в корень или в текущий раздел
+        let parent = null;
+        if (selectedId) {
+          const sel = findNode(data.sections, selectedId);
+          if (sel && sel.children !== undefined) parent = sel; // Любой, у кого есть дети
+        }
+        if (parent) {
+          parent.children = parent.children || [];
+          parent.children.push(newNode);
         } else {
-            let parent = null;
-            if (selectedId) {
-              const sel = findNode(data.sections, selectedId);
-              if (sel && sel.type === 'group') parent = sel;
-              else {
-                const p = getParent(data.sections, selectedId);
-                if (p) parent = p;
-              }
-            }
-            if (parent && parent.type === 'group') {
-              parent.children.push(newNode);
-            } else {
-              data.sections.push(newNode);
-            }
+          data.sections.push(newNode);
         }
         
         saveData(); renderTree(); selectNode(newNode.id);
@@ -979,13 +980,12 @@
       if (node) {
         node.title = title;
         if (node.type !== type) {
-          delete node.items; delete node.content; delete node.children;
+          delete node.items; delete node.content;
           node.type = type;
-          if (type === 'text') node.content = quillEditor ? quillEditor.root.innerHTML : '';
+          if (type === 'text') node.content = contentToSave;
           else if (type === 'checklist') node.items = [{ time: '09:00', task: 'Пример задачи' }];
-          else if (type === 'group') node.children = [];
-        } else if (type === 'text' && quillEditor) {
-          node.content = quillEditor.root.innerHTML;
+        } else if (type === 'text') {
+          node.content = contentToSave;
         }
         saveData(); renderTree(); renderContent(node.id);
       }
@@ -1047,7 +1047,7 @@
     async function initData() {
       const local = JSON.parse(localStorage.getItem('hotelChecklistData'));
       if (local && local.sections) data = local; 
-      else { data = { sections: [{ id: 's1', title: 'Общая инструкция', type: 'text', content: '<h3>Добро пожаловать!</h3><p>Здесь вы можете создавать инструкции, вставлять <strong>таблицы</strong> и <strong>картинки</strong>.</p>' }] }; saveData(); }
+      else { data = { sections: [{ id: 's1', title: 'Общая инструкция', type: 'text', content: '<h3>Добро пожаловать!</h3><p>Здесь вы можете создавать инструкции и чек-листы.</p>' }] }; saveData(); }
       
       if (!data.sections || data.sections.length === 0) data.sections = [{ id: 's1', title: 'Инструкция', type: 'text', content: '<p>Нажмите редактировать, чтобы добавить текст.</p>' }];
       
