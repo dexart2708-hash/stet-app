@@ -412,6 +412,12 @@
 
     async function pushToFirebase() {
       if (!db || !data) return;
+      // 👇 ГЛАВНАЯ ЗАЩИТА: ЗАПРЕТ НА ОТПРАВКУ ПУСТЫХ ДАННЫХ В ОБЛАКО
+      if (!data.sections || !Array.isArray(data.sections) || data.sections.length === 0) {
+          console.warn('⚠️ Блокировка: Попытка сохранить ПУСТЫЕ ДАННЫЕ в Firebase предотвращена!');
+          updateSyncStatus('offline', 'Защита: пустые данные');
+          return;
+      }
       try {
         updateSyncStatus('syncing', 'Отправка...');
         await db.collection(DATA_DOC).doc(DATA_ID).set(data, { merge: true });
@@ -422,6 +428,7 @@
         updateSyncStatus('offline', 'Офлайн');
       }
     }
+
     async function pullFromFirebase() {
       if (!db) return false;
       try {
@@ -429,8 +436,10 @@
         firebaseAvailable = true;
         if (docSnap.exists) {
           const cloudData = docSnap.data();
-          if (cloudData && cloudData.sections && cloudData.sections.length > 0) {
-            data = cloudData; localStorage.setItem('hotelChecklistData', JSON.stringify(data));
+          // 👇 Проверяем, что в облаке лежат валидные данные с разделами
+          if (cloudData && cloudData.sections && Array.isArray(cloudData.sections) && cloudData.sections.length > 0) {
+            data = cloudData; 
+            localStorage.setItem('hotelChecklistData', JSON.stringify(data));
             updateSyncStatus('online', 'Синхронизировано');
             return true;
           }
@@ -1119,7 +1128,7 @@
     }
 
     // ============================================================
-    // 9. ЭКСПОРТ / ИМПОРТ (НОВЫЕ КНОПКИ)
+    // 9. ЭКСПОРТ / ИМПОРТ
     // ============================================================
     function exportData() {
       const json = JSON.stringify(data, null, 2);
