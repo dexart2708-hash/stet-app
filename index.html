@@ -7,18 +7,15 @@
   <link rel="manifest" href="/manifest.json">
   <link rel="icon" href="https://nomeraspb.com/design/img/favicon.png" type="image/png">
   
-  <!-- Шрифты и иконки -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
   
-  <!-- Firebase -->
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 
-  <!-- Визуальный редактор Quill.js -->
+  <!-- Только основной редактор Quill, без плагина таблиц -->
   <link href="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.snow.css" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/quill-table@2.0.1/dist/quill-table.js"></script>
 
   <style>
     :root {
@@ -727,7 +724,7 @@
     }
 
     // ============================================================
-    // 6. ИСПРАВЛЕНИЕ: ЖЕСТКАЯ ИНИЦИАЛИЗАЦИЯ БЕЗ ТАЙМЕРОВ
+    // 6. СТАБИЛЬНАЯ ИНИЦИАЛИЗАЦИЯ QUIL (БЕЗ ТАБЛИЦ)
     // ============================================================
     let quillEditor = null;
 
@@ -748,7 +745,7 @@
       if (quillEditor) {
         quillEditor = null;
       }
-      container.innerHTML = ''; // Очистить DOM контейнер от предыдущих экземпляров
+      container.innerHTML = ''; 
 
       // Обработка изменения типа
       document.getElementById('editType').onchange = function() {
@@ -761,7 +758,7 @@
         }
       };
 
-      // Инициализация по умолчанию (без setTimeout)
+      // Инициализация по умолчанию
       const type = document.getElementById('editType').value;
       if (type === 'text') {
         editorField.style.display = 'block';
@@ -782,50 +779,29 @@
       };
     }
     
-        function initQuill() {
+    function initQuill() {
        const container = document.getElementById('editor-container');
        if (!container) return;
        
-       // Убеждаемся, что контейнер чист перед созданием редактора
        container.innerHTML = ''; 
        
        try {
-           // Пытаемся получить библиотеку QuillTable из глобального окна
-           let QuillTableModule = null;
-           if (typeof QuillTable !== 'undefined') {
-               QuillTableModule = QuillTable;
-           } else if (window.QuillTable) {
-               QuillTableModule = window.QuillTable;
-           }
-
-           // Регистрируем модуль таблиц ТОЛЬКО если библиотека найдена
-           if (QuillTableModule) {
-               Quill.register('modules/table', QuillTableModule);
-           }
-
-           // Формируем панель инструментов
-           let toolbarConfig = [
+           // Базовый список инструментов без "table"
+           const toolbarConfig = [
                [{ header: [1, 2, 3, false] }],
                ['bold', 'italic', 'underline', 'strike'],
                [{ list: 'ordered'}, { list: 'bullet' }],
                ['link', 'image'],
                ['clean']
            ];
-           // Если таблицы есть, добавляем кнопку с таблицей
-           if (QuillTableModule) {
-               toolbarConfig.splice(4, 0, [{ 'table': true }]);
-           }
 
            quillEditor = new Quill(container, {
                modules: {
-                   // Включаем таблицу только если модуль есть
-                   table: !!QuillTableModule,
                    toolbar: toolbarConfig
                },
                theme: 'snow'
            });
            
-           // Загружаем сохраненные данные, если они есть
            const node = findNode(data.sections, document.getElementById('modalOverlay').dataset.editId);
            if (node && node.content) {
                quillEditor.clipboard.dangerouslyPasteHTML(node.content);
