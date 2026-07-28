@@ -12,6 +12,7 @@
   
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
 
   <link href="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.snow.css" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.js"></script>
@@ -100,8 +101,6 @@
     .admin-status .status-badge.admin { background: var(--accent); color: #fff; }
     .admin-status button { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); padding: 2px 12px; border-radius: 50px; cursor: pointer; font-size: 0.7rem; color: #fff; }
     .admin-status button.admin-btn { background: var(--accent); border-color: var(--accent); }
-    .admin-status button.backup-btn { background: #10b981; border-color: #10b981; color: #fff; display: none; margin-right: 4px; }
-    .admin-status button.backup-btn:hover { background: #059669; border-color: #059669; }
 
     .app-body { display: flex; flex: 1; overflow: hidden; }
 
@@ -153,7 +152,6 @@
     .section-header .content-actions button.danger-btn:hover { border-color: #e74c3c; color: #e74c3c; background: rgba(231, 76, 60, 0.06); }
     .section-header .content-actions button.success-btn { background: #10b981; border-color: #10b981; color: #fff; }
 
-    /* ===== ОГРАНИЧЕНИЕ РАЗМЕРА КАРТИНОК ===== */
     .content-render img, .ql-editor img {
       max-width: 100% !important;
       height: auto !important;
@@ -172,12 +170,6 @@
     .content-render table th, .content-render table td { border: 1px solid var(--border); padding: 8px 10px; text-align: left; }
     .content-render table th { background: var(--sidebar-bg); font-weight: 600; }
     
-    /* ===== ПРОГРЕСС БАР ДЛЯ ЧЕК-ЛИСТА ===== */
-    .progress-wrap { margin-bottom: 16px; padding-bottom: 8px; display: flex; flex-direction: column; gap: 6px; }
-    .progress-text { font-size: 0.8rem; font-weight: 500; color: var(--text-secondary); letter-spacing: 0.3px; }
-    .progress-bar { width: 100%; height: 4px; background: var(--border); border-radius: 10px; overflow: hidden; }
-    .progress-fill { height: 100%; background: var(--accent); border-radius: 10px; transition: width 0.3s ease; }
-
     .checklist { display: flex; flex-direction: column; gap: 6px; margin-bottom: 1rem; }
     .checklist-item { display: flex; align-items: stretch; border-radius: var(--radius-sm); transition: var(--transition); border: 1px solid var(--border); overflow: hidden; background: var(--bg-main); box-shadow: var(--shadow); }
     .checklist-item:hover { box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05); }
@@ -212,7 +204,6 @@
       .section-header .title-group h2 { font-size: 1.1rem; }
     }
 
-    /* ===== СТИЛИ ДЛЯ ПЕЧАТИ / PDF ===== */
     @media print {
       .app-header, .sidebar, .section-header .content-actions, .edit-toolbar, #sidebar, .sync-indicator, .admin-status { display: none !important; }
       .app-body { display: block !important; overflow: visible !important; }
@@ -226,7 +217,6 @@
       .modal-overlay { display: none !important; }
     }
 
-    /* ===== МОДАЛЬНОЕ ОКНО ===== */
     .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); display: none; align-items: center; justify-content: center; z-index: 1000; padding: 10px; }
     .modal-overlay.active { display: flex; }
     .modal { background: var(--bg-main); border-radius: var(--radius); max-width: 780px; width: 100%; max-height: 95vh; display: flex; flex-direction: column; box-shadow: 0 20px 60px rgba(0,0,0,0.3); overflow: hidden; border-top: 4px solid var(--accent); }
@@ -276,9 +266,6 @@
         <span id="syncText">Инициализация...</span>
       </div>
       <div class="admin-status">
-        <button class="backup-btn" id="exportDataBtn"><i class="fas fa-download"></i> Бекап</button>
-        <button class="backup-btn" id="importDataBtn"><i class="fas fa-upload"></i> Импорт</button>
-        <input type="file" id="importFileInput" accept=".json" style="display: none;" />
         <span class="status-badge viewer" id="statusBadge">Просмотр</span>
         <button id="adminToggle">Вход</button>
       </div>
@@ -332,7 +319,7 @@
 
   <script>
     // ============================================================
-    // 1. FIREBASE 
+    // 1. FIREBASE
     // ============================================================
     const firebaseConfig = {
       apiKey: "AIzaSyDdm0kaIesCu4CBennxPVoPhXwyAyAiwIg",
@@ -345,6 +332,7 @@
     };
 
     let db = null;
+    let storage = null;
     let firebaseAvailable = false;
     const DATA_DOC = 'checklists';
     const DATA_ID = 'main';
@@ -352,6 +340,8 @@
     try {
       firebase.initializeApp(firebaseConfig);
       db = firebase.firestore();
+      storage = firebase.storage();
+      
       db.collection(DATA_DOC).doc(DATA_ID).get()
         .then(() => {
           firebaseAvailable = true;
@@ -360,10 +350,13 @@
         })
         .catch(err => {
           console.warn('Firebase недоступен:', err);
+          firebaseAvailable = false;
           updateSyncStatus('offline', 'Офлайн');
           initData();
         });
     } catch (e) {
+      console.warn('Firebase не инициализирован:', e);
+      firebaseAvailable = false;
       updateSyncStatus('offline', 'Firebase не подключён');
       initData();
     }
@@ -371,6 +364,9 @@
     let data = null, selectedId = null, searchQuery = '', nextId = 100, isAdmin = false, editingId = null;
     const ADMIN_PASSWORD = 'admin123';
     const expanded = new Map();
+    const INITIAL_DATA = {
+      sections: [{ id: 's1', title: 'Общая инструкция', type: 'text', content: '<h3>Добро пожаловать!</h3><p>Здесь вы можете создавать инструкции и чек-листы.</p>' }]
+    };
 
     function generateId() { return 'n' + (nextId++); }
     function deepClone(obj) { return JSON.parse(JSON.stringify(obj)); }
@@ -412,12 +408,6 @@
 
     async function pushToFirebase() {
       if (!db || !data) return;
-      // 👇 ГЛАВНАЯ ЗАЩИТА: ЗАПРЕТ НА ОТПРАВКУ ПУСТЫХ ДАННЫХ В ОБЛАКО
-      if (!data.sections || !Array.isArray(data.sections) || data.sections.length === 0) {
-          console.warn('⚠️ Блокировка: Попытка сохранить ПУСТЫЕ ДАННЫЕ в Firebase предотвращена!');
-          updateSyncStatus('offline', 'Защита: пустые данные');
-          return;
-      }
       try {
         updateSyncStatus('syncing', 'Отправка...');
         await db.collection(DATA_DOC).doc(DATA_ID).set(data, { merge: true });
@@ -428,7 +418,6 @@
         updateSyncStatus('offline', 'Офлайн');
       }
     }
-
     async function pullFromFirebase() {
       if (!db) return false;
       try {
@@ -436,10 +425,8 @@
         firebaseAvailable = true;
         if (docSnap.exists) {
           const cloudData = docSnap.data();
-          // 👇 Проверяем, что в облаке лежат валидные данные с разделами
-          if (cloudData && cloudData.sections && Array.isArray(cloudData.sections) && cloudData.sections.length > 0) {
-            data = cloudData; 
-            localStorage.setItem('hotelChecklistData', JSON.stringify(data));
+          if (cloudData && cloudData.sections && cloudData.sections.length > 0) {
+            data = cloudData; localStorage.setItem('hotelChecklistData', JSON.stringify(data));
             updateSyncStatus('online', 'Синхронизировано');
             return true;
           }
@@ -572,7 +559,7 @@
     }
 
     // ============================================================
-    // 3. DRAG & DROP (Глобальное перемещение разделов)
+    // 3. DRAG & DROP
     // ============================================================
     function bindTreeDragDropEvents(container) {
         let draggedId = null;
@@ -641,7 +628,7 @@
     }
 
     // ============================================================
-    // 4. РЕНДЕРИНГ КОНТЕНТА (ЧЕКБОКСЫ И ПРОГРЕСС-БАР)
+    // 4. РЕНДЕРИНГ КОНТЕНТА
     // ============================================================
     function renderContent(id) {
       const panel = document.getElementById('contentPanel');
@@ -672,7 +659,6 @@
         if (editingId === node.id) {
           html += renderEditableChecklist(node);
         } else {
-          // ПРОГРЕСС-БАР
           const items = node.items || [];
           const total = items.length;
           const done = items.filter(i => i.checked).length;
@@ -699,7 +685,6 @@
       html += `</div>`;
       panel.innerHTML = html;
 
-      // ОБРАБОТЧИКИ ЧЕКБОКСОВ (С сохранением в Firebase)
       panel.querySelectorAll('.checkbox').forEach(el => {
         el.addEventListener('click', function() {
           const idx = parseInt(this.dataset.index);
@@ -707,12 +692,11 @@
           if (node && node.items && node.items[idx]) {
             node.items[idx].checked = !node.items[idx].checked;
             saveData();
-            renderContent(id); // Перерисовываем для обновления прогресс-бара и галочки
+            renderContent(id);
           }
         });
       });
       
-      // ОБРАБОТЧИК ПЕЧАТИ PDF
       const printBtn = document.getElementById('printChecklistBtn');
       if (printBtn) printBtn.addEventListener('click', function() { window.print(); });
 
@@ -817,52 +801,39 @@
     }
 
     // ============================================================
-    // 6. ПЛАВНЫЙ DRAG AND DROP (Верх/Низ)
+    // 6. ПЛАВНЫЙ DRAG AND DROP
     // ============================================================
     function enableDragAndDrop(list) {
         let draggedItem = null;
-
         list.querySelectorAll('.edit-row').forEach(row => {
             row.addEventListener('dragstart', function(e) {
                 draggedItem = this;
                 e.dataTransfer.effectAllowed = 'move';
                 requestAnimationFrame(() => this.classList.add('dragging'));
             });
-
             row.addEventListener('dragend', function(e) {
                 this.classList.remove('dragging');
                 draggedItem = null;
             });
-
             row.addEventListener('dragover', function(e) {
                 e.preventDefault();
                 e.dataTransfer.dropEffect = 'move';
                 if (!draggedItem || draggedItem === this) return;
-
                 const rect = this.getBoundingClientRect();
                 const midpoint = rect.top + rect.height / 2;
                 const isBelowMidpoint = e.clientY > midpoint;
-
                 const container = this.parentElement;
-
                 if (isBelowMidpoint) {
                     const next = this.nextElementSibling;
-                    if (next !== draggedItem) {
-                        container.insertBefore(draggedItem, next);
-                    }
+                    if (next !== draggedItem) container.insertBefore(draggedItem, next);
                 } else {
-                    if (this !== draggedItem) {
-                        container.insertBefore(draggedItem, this);
-                    }
+                    if (this !== draggedItem) container.insertBefore(draggedItem, this);
                 }
             });
-
             row.addEventListener('drop', function(e) {
                 e.preventDefault();
                 if (!draggedItem) return;
-
                 const container = draggedItem.parentElement;
-                
                 const newOrder = [];
                 container.querySelectorAll('.edit-row').forEach(row => {
                     const idx = parseInt(row.dataset.index);
@@ -874,7 +845,6 @@
                     node.items = newOrder;
                     saveData();
                 }
-
                 const allRows = container.querySelectorAll('.edit-row');
                 allRows.forEach((row, idx) => {
                     row.dataset.index = idx;
@@ -887,7 +857,7 @@
     }
 
     // ============================================================
-    // 7. ИНИЦИАЛИЗАЦИЯ РЕДАКТОРА QUIL (Base64)
+    // 7. ИНИЦИАЛИЗАЦИЯ РЕДАКТОРА QUIL
     // ============================================================
     let quillEditor = null;
 
@@ -906,23 +876,15 @@
       const editorField = document.getElementById('editor-field');
       const container = document.getElementById('editor-container');
 
-      if (quillEditor) {
-        quillEditor = null;
-      }
+      if (quillEditor) { quillEditor = null; }
       container.innerHTML = ''; 
       const toolbarContainer = container.parentElement.querySelector('.ql-toolbar');
-      if (toolbarContainer) {
-          toolbarContainer.remove();
-      }
+      if (toolbarContainer) { toolbarContainer.remove(); }
 
       overlay.onclick = null;
-      overlay.addEventListener('click', function(e) {
-          if (e.target === this) closeModal();
-      });
+      overlay.addEventListener('click', function(e) { if (e.target === this) closeModal(); });
       modalEl.onmousedown = null;
-      modalEl.addEventListener('mousedown', function(e) {
-          e.stopPropagation();
-      });
+      modalEl.addEventListener('mousedown', function(e) { e.stopPropagation(); });
 
       document.getElementById('editType').onchange = function() {
         const t = this.value;
@@ -946,21 +908,15 @@
 
       document.getElementById('modalClose').onclick = closeModal;
       document.getElementById('modalCancel').onclick = closeModal;
-      
-      document.getElementById('modalSave').onclick = function() {
-        saveModalEdit(document.getElementById('modalOverlay').dataset.editId);
-      };
+      document.getElementById('modalSave').onclick = function() { saveModalEdit(document.getElementById('modalOverlay').dataset.editId); };
     }
     
     function initQuill() {
        const container = document.getElementById('editor-container');
        if (!container) return;
-       
        container.innerHTML = ''; 
        const toolbarContainer = container.parentElement.querySelector('.ql-toolbar');
-       if (toolbarContainer) {
-           toolbarContainer.remove();
-       }
+       if (toolbarContainer) { toolbarContainer.remove(); }
        
        try {
            const toolbarConfig = [
@@ -976,75 +932,28 @@
                theme: 'snow'
            });
 
-           // ЗАГРУЗКА КАРТИНОК (Base64 локально)
-           function resizeAndCompressImage(file, maxWidth, maxHeight, quality) {
-               return new Promise((resolve, reject) => {
-                   const reader = new FileReader();
-                   reader.onload = (e) => {
-                       const img = new Image();
-                       img.onload = () => {
-                           const canvas = document.createElement('canvas');
-                           let width = img.width;
-                           let height = img.height;
-
-                           if (width > height) {
-                               if (width > maxWidth) {
-                                   height = Math.round((height * maxWidth) / width);
-                                   width = maxWidth;
-                               }
-                           } else {
-                               if (height > maxHeight) {
-                                   width = Math.round((width * maxHeight) / height);
-                                   height = maxHeight;
-                               }
-                           }
-
-                           canvas.width = width;
-                           canvas.height = height;
-                           const ctx = canvas.getContext('2d');
-                           ctx.drawImage(img, 0, 0, width, height);
-                           
-                           canvas.toBlob((blob) => {
-                               const readerBlob = new FileReader();
-                               readerBlob.onloadend = () => {
-                                   resolve(readerBlob.result);
-                               };
-                               readerBlob.readAsDataURL(blob);
-                           }, 'image/jpeg', quality);
-                       };
-                       img.onerror = reject;
-                       img.src = e.target.result;
-                   };
-                   reader.onerror = reject;
-                   reader.readAsDataURL(file);
-               });
-           }
-
            quillEditor.getModule('toolbar').addHandler('image', function() {
                const input = document.createElement('input');
                input.setAttribute('type', 'file');
                input.setAttribute('accept', 'image/*');
                input.click();
 
-               input.onchange = async function() {
+               input.onchange = async () => {
                    const file = input.files[0];
                    if (!file) return;
-
                    const range = quillEditor.getSelection(true);
-                   const tempText = '⏳ Сжатие изображения...';
-                   const startIdx = range.index;
-                   quillEditor.insertText(startIdx, tempText);
+                   quillEditor.insertText(range.index, '⏳ Загрузка изображения...');
 
                    try {
-                       const base64String = await resizeAndCompressImage(file, 1200, 1200, 0.8);
-                       quillEditor.deleteText(startIdx, tempText.length);
-                       quillEditor.insertEmbed(startIdx, 'image', base64String);
+                       const fileRef = storage.ref(`images/${Date.now()}_${file.name}`);
+                       await fileRef.put(file);
+                       const downloadURL = await fileRef.getDownloadURL();
+                       quillEditor.deleteText(range.index, '⏳ Загрузка изображения...'.length);
+                       quillEditor.insertEmbed(range.index, 'image', downloadURL);
                    } catch (error) {
-                       console.error("Ошибка обработки картинки:", error);
-                       if (quillEditor) {
-                           quillEditor.deleteText(startIdx, tempText.length);
-                           quillEditor.insertText(startIdx, `❌ Ошибка сжатия картинки. Попробуйте другое фото.`);
-                       }
+                       console.error("Ошибка загрузки картинки:", error);
+                       quillEditor.deleteText(range.index, '⏳ Загрузка изображения...'.length);
+                       quillEditor.insertText(range.index, '❌ Ошибка загрузки изображения.');
                    }
                };
            });
@@ -1071,17 +980,13 @@
       const title = document.getElementById('editTitle').value.trim();
       if (!title) { alert('Введите название раздела.'); return; }
       const type = document.getElementById('editType').value;
-
       let contentToSave = '';
-      if (type === 'text') {
-        contentToSave = quillEditor ? quillEditor.root.innerHTML : '';
-      }
+      if (type === 'text') { contentToSave = quillEditor ? quillEditor.root.innerHTML : ''; }
 
       if (id === 'new') {
         const newNode = { id: generateId(), title: title, type: type };
         if (type === 'text') newNode.content = contentToSave;
         else if (type === 'checklist') newNode.items = [{ time: '09:00', task: 'Пример задачи', checked: false }];
-        
         let parent = null;
         if (selectedId) {
           const sel = findNode(data.sections, selectedId);
@@ -1093,7 +998,6 @@
         } else {
           data.sections.push(newNode);
         }
-        
         saveData(); renderTree(); selectNode(newNode.id);
         closeModal(); return;
       }
@@ -1115,7 +1019,7 @@
     }
 
     // ============================================================
-    // 8. УДАЛЕНИЕ
+    // 8. УДАЛЕНИЕ И СКАЧИВАНИЕ
     // ============================================================
     function deleteSection(id) {
       if (!isAdmin) return;
@@ -1128,67 +1032,50 @@
     }
 
     // ============================================================
-    // 9. ЭКСПОРТ / ИМПОРТ
-    // ============================================================
-    function exportData() {
-      const json = JSON.stringify(data, null, 2);
-      const blob = new Blob([json], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'hotel_backup_data.json';
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-    }
-
-    function importData() {
-      document.getElementById('importFileInput').click();
-    }
-
-    function handleImportFile(e) {
-      const file = e.target.files[0];
-      if (!file) return;
-      const reader = new FileReader();
-      reader.onload = function(ev) {
-        try {
-          const imported = JSON.parse(ev.target.result);
-          if (!imported.sections || !Array.isArray(imported.sections)) {
-            throw new Error('Неверный формат JSON. Убедитесь, что файл является бекапом.');
-          }
-          data = imported;
-          saveData();
-          renderTree();
-          if (data.sections.length > 0) selectedId = data.sections[0].id;
-          else selectedId = null;
-          renderContent(selectedId);
-          alert('✅ Данные успешно импортированы!');
-        } catch (err) {
-          alert('❌ Ошибка импорта: ' + err.message);
-        }
-      };
-      reader.readAsText(file);
-      e.target.value = '';
-    }
-
-    // ============================================================
-    // 10. ИНИЦИАЛИЗАЦИЯ
+    // 9. УСИЛЕННАЯ ИНИЦИАЛИЗАЦИЯ (ИСПРАВЛЕНИЕ ПУСТОГО ЭКРАНА)
     // ============================================================
     async function initData() {
-      const local = JSON.parse(localStorage.getItem('hotelChecklistData'));
-      if (local && local.sections) data = local; 
-      else { data = { sections: [{ id: 's1', title: 'Общая инструкция', type: 'text', content: '<h3>Добро пожаловать!</h3><p>Здесь вы можете создавать инструкции и чек-листы.</p>' }] }; saveData(); }
+      console.log('📦 Запуск initData...');
       
-      if (!data.sections || data.sections.length === 0) data.sections = [{ id: 's1', title: 'Инструкция', type: 'text', content: '<p>Нажмите редактировать, чтобы добавить текст.</p>' }];
-      
-      await pullFromFirebase();
-      selectedId = data.sections[0]?.id || null;
-      renderTree(); renderContent(selectedId);
+      // 1. Пробуем загрузить локальные данные
+      let local = loadFromLocalStorage();
+      if (local && local.sections && local.sections.length > 0) {
+        data = local;
+      } else {
+        // 2. Если локальных нет или они пустые, сразу ставим дефолтные (начальные)
+        console.log('⚠️ Локальных данных нет, загружаем начальные.');
+        data = deepClone(INITIAL_DATA);
+        saveToLocalStorage(data);
+      }
+
+      // 3. Пытаемся стянуть свежие данные из Firebase
+      try {
+        const pulled = await pullFromFirebase();
+        if (pulled) {
+          console.log('✅ Данные обновлены из Firebase.');
+        } else {
+          console.log('ℹ️ Данные из Firebase пусты или нет соединения, остаёмся на локальных.');
+        }
+      } catch (e) {
+        console.warn('❌ Критическая ошибка при pullFromFirebase:', e);
+      }
+
+      // 4. Финальная защита (третий рубеж). Если data всё еще null или пуст — принудительно восстанавливаем.
+      if (!data || !data.sections || data.sections.length === 0) {
+        console.warn('⚠️ Экстренное восстановление данных (последний рубеж)!');
+        data = deepClone(INITIAL_DATA);
+        saveToLocalStorage(data);
+      }
+
+      // 5. Выбираем первый раздел и рендерим.
+      if (!selectedId) selectedId = data.sections[0]?.id || null;
+      renderTree();
+      renderContent(selectedId);
+      console.log('🎨 Рендеринг завершён.');
     }
 
     // ============================================================
-    // 11. ЗАПУСК ПРИЛОЖЕНИЯ
+    // 10. ЗАПУСК
     // ============================================================
     document.addEventListener('DOMContentLoaded', function() {
       const savedTheme = localStorage.getItem('hotelChecklistTheme') || 'default';
@@ -1218,34 +1105,16 @@
         this.textContent = isAdmin ? 'Выйти' : 'Вход';
         this.classList.toggle('admin-btn', isAdmin);
         document.getElementById('addSectionBtn').classList.toggle('hidden', !isAdmin);
-        document.getElementById('exportDataBtn').style.display = isAdmin ? 'inline-block' : 'none';
-        document.getElementById('importDataBtn').style.display = isAdmin ? 'inline-block' : 'none';
         renderTree(); renderContent(selectedId);
       });
 
       document.getElementById('expandAllBtn').addEventListener('click', () => {
-        function rec(nodes) {
-            for (const n of nodes) {
-                if (n.children) {
-                    expanded.set(n.id, true);
-                    rec(n.children);
-                }
-            }
-        }
-        rec(data.sections);
-        renderTree();
+        function rec(nodes) { for (const n of nodes) { if (n.children) { expanded.set(n.id, true); rec(n.children); } } }
+        rec(data.sections); renderTree();
       });
       document.getElementById('collapseAllBtn').addEventListener('click', () => {
-        function rec(nodes) {
-            for (const n of nodes) {
-                if (n.children) {
-                    expanded.set(n.id, false);
-                    rec(n.children);
-                }
-            }
-        }
-        rec(data.sections);
-        renderTree();
+        function rec(nodes) { for (const n of nodes) { if (n.children) { expanded.set(n.id, false); rec(n.children); } } }
+        rec(data.sections); renderTree();
       });
 
       const addBtn = document.getElementById('addSectionBtn');
@@ -1255,10 +1124,6 @@
           openEditModal('new');
         });
       }
-
-      document.getElementById('exportDataBtn').addEventListener('click', exportData);
-      document.getElementById('importDataBtn').addEventListener('click', importData);
-      document.getElementById('importFileInput').addEventListener('change', handleImportFile);
 
       initData();
     });
