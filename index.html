@@ -131,6 +131,11 @@
     .tree-node .children.open { max-height: 2000px; opacity: 1; }
     .empty-tree { padding: 20px 16px; text-align: center; color: var(--text-light); font-size: 0.85rem; }
 
+    /* Стили для Drag&Drop в меню */
+    .node-label.dragging { opacity: 0.4; }
+    .node-label.drop-target { background-color: var(--accent); color: #fff; border-radius: var(--radius-sm); }
+    .node-label.drop-target .icon, .node-label.drop-target .title, .node-label.drop-target .toggle { color: #fff; }
+
     .content-panel { flex: 1; overflow-y: auto; padding: 16px 20px 30px; background: var(--bg-main); display: flex; flex-direction: column; }
     .content-panel .empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; color: var(--text-light); text-align: center; }
     .content-panel .empty-state i { font-size: 3rem; margin-bottom: 16px; opacity: 0.3; }
@@ -341,7 +346,7 @@
 
     let data = null, selectedId = null, searchQuery = '', nextId = 100, isAdmin = false, editingId = null;
     const ADMIN_PASSWORD = 'admin123';
-    const expanded = new Set(); // Хранит id папок, которые раскрыты вручную стрелочкой
+    const expanded = new Set();
 
     function generateId() { return 'n' + (nextId++); }
     function deepClone(obj) { return JSON.parse(JSON.stringify(obj)); }
@@ -363,7 +368,6 @@
       }
       return null;
     }
-    // Проверка: является ли узел предком другого узла по id
     function isAncestor(node, targetId) {
       if (!node.children || node.children.length === 0) return false;
       for (const child of node.children) {
@@ -421,7 +425,7 @@
     }
 
     // ============================================================
-    // 2. РЕНДЕРИНГ ДЕРЕВА (ИСПРАВЛЕНА ЛОГИКА ПАПОК)
+    // 2. РЕНДЕРИНГ ДЕРЕВА
     // ============================================================
     function renderTree() {
       const container = document.getElementById('treeContainer');
@@ -440,8 +444,6 @@
       container.querySelectorAll('.node-label').forEach(el => {
         el.addEventListener('click', function(e) {
           const id = this.dataset.id;
-          
-          // Если кликнули на стрелку - переключаем состояние (не снимая выделения!)
           if (e.target.closest('.toggle')) {
             const node = findNode(data.sections, id);
             if (node && node.children) {
@@ -450,10 +452,7 @@
             }
             return;
           }
-          // Если кликнули на кнопки действий - игнорируем выбор
           if (e.target.closest('.node-actions')) return;
-          
-          // Иначе - выбираем/открываем раздел
           selectNode(id);
         });
       });
@@ -472,6 +471,11 @@
           if (confirm('Удалить этот раздел?')) deleteSection(this.dataset.id);
         });
       });
+
+      // Инициализация перетаскивания (Drag&Drop) для перемещения файлов в папки
+      if (isAdmin) {
+        bindTreeDragDropEvents(container);
+      }
     }
 
     function filterTree(tree, query) {
@@ -497,17 +501,16 @@
       const isGroup = node.type === 'group' || (node.children && node.children.length > 0);
       const isActive = node.id === selectedId;
       
-      // ИСПРАВЛЕНИЕ: Папка раскрывается, если нажата стрелочка, если она активна, ИЛИ если внутри выбран файл.
       let isExpanded = false;
       if (expanded.has(node.id)) {
-          isExpanded = true; // Ручное управление стрелочкой
+          isExpanded = true;
       } else {
           isExpanded = (isActive && isGroup) || (selectedId && isAncestor(node, selectedId)); 
       }
       
       const icon = isGroup ? (isExpanded ? 'fa-folder-open' : 'fa-folder') : (node.type === 'checklist' ? 'fa-check-square' : 'fa-file-alt');
       
-      let html = `<div class="tree-node" data-id="${node.id}"><div class="node-label ${isActive ? 'active' : ''}" data-id="${node.id}">`;
+      let html = `<div class="tree-node" data-id="${node.id}"><div class="node-label ${isActive ? 'active' : ''}${isGroup ? ' group-folder' : ''}" data-id="${node.id}">`;
       html += `<span class="icon"><i class="fas ${icon}"></i></span><span class="title">${escapeHtml(node.title)}</span>`;
       
       if (isGroup) html += `<span class="toggle ${isExpanded ? 'open' : ''}"><i class="fas fa-chevron-right"></i></span>`;
@@ -535,7 +538,81 @@
     }
 
     // ============================================================
-    // 3. РЕНДЕРИНГ КОНТЕНТА
+    // 3. DRAG & DROP ДЛЯ БОКОВОГО МЕНЮ
+    // ============================================================
+    function bindTreeDragDropEvents(container) {
+        let draggedId = null;
+
+        // Назначаем перетаскиваемые элементы (файлы/чек-листы)
+        container.querySelectorAll('.node-label:not(.group-folder)').forEach(el => {
+            el.setAttribute('draggable', 'true');
+            el.addEventListener('dragstart', function(e) {
+                draggedId = this.dataset.id;
+                e.dataTransfer.setData('text/plain', this.dataset.id);
+                e.dataTransfer.effectAllowed = 'move';
+                // Небольшая задержка для корректного отображения класса
+                setTimeout(() => this.classList.add('dragging'), 0);
+            });
+            el.addEventListener('dragend', function(e) {
+                this.classList.remove('dragging');
+                document.querySelectorAll('.node-label.drop-target').forEach(el => el.classList.remove('drop-target'));
+            });
+        });
+
+        // Назначаем области для сброса (папки)
+        container.querySelectorAll('.node-label.group-folder').forEach(el => {
+            el.addEventListener('dragover', function(e) {
+                e.preventDefault();
+                e.dataTransfer.dropEffect = 'move';
+                this.classList.add('drop-target');
+            });
+            el.addEventListener('dragenter', function(e) {
+                e.preventDefault();
+                this.classList.add('drop-target');
+            });
+            el.addEventListener('dragleave', function(e) {
+                // Защита от случайного срабатывания при переходе на дочерние элементы
+                if (e.target.closest('.node-label') !== this) return;
+                this.classList.remove('drop-target');
+            });
+            el.addEventListener('drop', function(e) {
+                e.preventDefault();
+                this.classList.remove('drop-target');
+
+                const targetFolderId = this.dataset.id;
+                if (!draggedId || draggedId === targetFolderId) return;
+
+                const draggedNode = findNode(data.sections, draggedId);
+                const targetFolder = findNode(data.sections, targetFolderId);
+
+                if (!draggedNode || !targetFolder) return;
+                if (draggedNode.type === 'group') return; // Не даем перетаскивать папки (только файлы)
+                if (targetFolder.type !== 'group') return;
+
+                // Проверяем, не лежит ли уже файл в этой папке
+                const parent = getParent(data.sections, draggedId);
+                if (parent && parent.id === targetFolderId) return;
+
+                // Убираем из текущего расположения
+                if (parent) {
+                    parent.children = parent.children.filter(c => c.id !== draggedId);
+                } else {
+                    data.sections = data.sections.filter(s => s.id !== draggedId);
+                }
+
+                // Добавляем в целевую папку
+                targetFolder.children.push(draggedNode);
+
+                saveData();
+                draggedId = null;
+                renderTree();
+                if (selectedId) renderContent(selectedId);
+            });
+        });
+    }
+
+    // ============================================================
+    // 4. РЕНДЕРИНГ КОНТЕНТА
     // ============================================================
     function renderContent(id) {
       const panel = document.getElementById('contentPanel');
@@ -617,7 +694,7 @@
     }
 
     // ============================================================
-    // 4. РЕДАКТИРОВАНИЕ ЧЕК-ЛИСТА
+    // 5. РЕДАКТИРОВАНИЕ ЧЕК-ЛИСТА
     // ============================================================
     function renderEditableChecklist(node) {
       let html = `<div class="edit-checklist" id="editableChecklistContainer">`;
@@ -701,7 +778,7 @@
     }
 
     // ============================================================
-    // 5. DRAG AND DROP
+    // 6. DRAG AND DROP (Для чек-листов)
     // ============================================================
     let draggedItem = null;
     function enableDragAndDrop(list) {
@@ -757,7 +834,7 @@
     }
 
     // ============================================================
-    // 6. НАДЕЖНАЯ ИНИЦИАЛИЗАЦИЯ РЕДАКТОРА QUIL
+    // 7. ИНИЦИАЛИЗАЦИЯ РЕДАКТОРА QUIL
     // ============================================================
     let quillEditor = null;
 
@@ -771,6 +848,8 @@
       document.getElementById('editType').value = node ? node.type : 'text';
       document.getElementById('modalOverlay').dataset.editId = id;
       
+      const overlay = document.getElementById('modalOverlay');
+      const modalEl = overlay.querySelector('.modal');
       const editorField = document.getElementById('editor-field');
       const container = document.getElementById('editor-container');
 
@@ -783,6 +862,16 @@
       if (toolbarContainer) {
           toolbarContainer.remove();
       }
+
+      // ИСПРАВЛЕНИЕ: Защита от случайного закрытия при клике/движении мыши
+      overlay.onclick = null;
+      overlay.addEventListener('click', function(e) {
+          if (e.target === this) closeModal();
+      });
+      modalEl.onmousedown = null;
+      modalEl.addEventListener('mousedown', function(e) {
+          e.stopPropagation();
+      });
 
       document.getElementById('editType').onchange = function() {
         const t = this.value;
@@ -802,13 +891,11 @@
         editorField.style.display = 'none';
       }
 
-      document.getElementById('modalOverlay').classList.add('active');
+      overlay.classList.add('active');
 
       document.getElementById('modalClose').onclick = closeModal;
       document.getElementById('modalCancel').onclick = closeModal;
-      document.getElementById('modalOverlay').addEventListener('click', function(e) {
-        if (e.target === this) closeModal();
-      });
+      
       document.getElementById('modalSave').onclick = function() {
         saveModalEdit(document.getElementById('modalOverlay').dataset.editId);
       };
@@ -867,12 +954,9 @@
         else if (type === 'checklist') newNode.items = [{ time: '09:00', task: 'Пример задачи' }];
         else if (type === 'group') newNode.children = [];
         
-        // ИСПРАВЛЕНИЕ: Папки создаются ТОЛЬКО в корне. Файлы - в текущей папке.
         if (type === 'group') {
-            // Папка всегда в корне!
             data.sections.push(newNode);
         } else {
-            // Текст или Чек-лист. Проверяем, выбрана ли папка для вложения.
             let parent = null;
             if (selectedId) {
               const sel = findNode(data.sections, selectedId);
@@ -911,7 +995,7 @@
     }
 
     // ============================================================
-    // 7. УДАЛЕНИЕ И СКАЧИВАНИЕ
+    // 8. УДАЛЕНИЕ И СКАЧИВАНИЕ
     // ============================================================
     function deleteSection(id) {
       if (!isAdmin) return;
@@ -960,7 +1044,7 @@
     }
 
     // ============================================================
-    // 8. ИНИЦИАЛИЗАЦИЯ
+    // 9. ИНИЦИАЛИЗАЦИЯ
     // ============================================================
     async function initData() {
       const local = JSON.parse(localStorage.getItem('hotelChecklistData'));
@@ -975,7 +1059,7 @@
     }
 
     // ============================================================
-    // 9. ЗАПУСК
+    // 10. ЗАПУСК
     // ============================================================
     document.addEventListener('DOMContentLoaded', function() {
       const savedTheme = localStorage.getItem('hotelChecklistTheme') || 'default';
