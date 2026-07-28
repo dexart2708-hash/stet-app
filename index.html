@@ -583,11 +583,9 @@
                     data.sections = data.sections.filter(s => s.id !== draggedId);
                 }
 
-                // Если у целевого элемента есть дети (папка) -> помещаем внутрь
                 if (targetNode.children) {
                     targetNode.children.push(draggedNode);
                 } else {
-                    // Иначе вставляем ПОСЛЕ целевого элемента на том же уровне
                     const targetParent = getParent(data.sections, this.dataset.id);
                     if (targetParent) {
                         const targetIdx = targetParent.children.findIndex(c => c.id === this.dataset.id);
@@ -680,7 +678,6 @@
       const items = node.items || [];
       for (let i = 0; i < items.length; i++) {
         const item = items[i];
-        // Добавлено draggable="true" прямо в HTML строку
         html += `<div class="edit-row" data-index="${i}" draggable="true">`;
         html += `<span class="drag-handle"><i class="fas fa-grip-vertical"></i></span>`;
         html += `<input class="time-input" type="text" value="${escapeHtml(item.time)}" placeholder="Время" data-index="${i}" data-field="time" />`;
@@ -758,49 +755,45 @@
     }
 
     // ============================================================
-    // 6. ПЛАВНЫЙ DRAG AND DROP (HTML5 Native) для чек-листов
+    // 6. ИДЕАЛЬНО ПЛАВНЫЙ DRAG AND DROP (Верх/Низ)
     // ============================================================
     function enableDragAndDrop(list) {
         let draggedItem = null;
-        const rows = list.querySelectorAll('.edit-row');
-        rows.forEach(row => {
+
+        list.querySelectorAll('.edit-row').forEach(row => {
             row.addEventListener('dragstart', function(e) {
                 draggedItem = this;
                 e.dataTransfer.effectAllowed = 'move';
-                e.dataTransfer.setData('text/plain', this.dataset.index);
                 requestAnimationFrame(() => this.classList.add('dragging'));
             });
 
             row.addEventListener('dragend', function(e) {
                 this.classList.remove('dragging');
                 draggedItem = null;
-                // Не перерисовываем страницу!
             });
 
             row.addEventListener('dragover', function(e) {
                 e.preventDefault();
                 e.dataTransfer.dropEffect = 'move';
-                if (!draggedItem) return;
+                if (!draggedItem || draggedItem === this) return;
+
+                const rect = this.getBoundingClientRect();
+                const midpoint = rect.top + rect.height / 2;
+                const isBelowMidpoint = e.clientY > midpoint;
 
                 const container = this.parentElement;
-                const siblings = [...container.querySelectorAll('.edit-row:not(.dragging)')];
-                let closest = null;
-                let closestDist = Number.POSITIVE_INFINITY;
-                const mouseY = e.clientY;
 
-                siblings.forEach(sib => {
-                    const box = sib.getBoundingClientRect();
-                    const dist = mouseY - (box.top + box.height / 2);
-                    if (dist < 0 && dist > closestDist) {
-                        closestDist = dist;
-                        closest = sib;
+                if (isBelowMidpoint) {
+                    // Вставка ПОСЛЕ этого элемента
+                    const next = this.nextElementSibling;
+                    if (next !== draggedItem) {
+                        container.insertBefore(draggedItem, next);
                     }
-                });
-
-                if (closest) {
-                    container.insertBefore(draggedItem, closest);
                 } else {
-                    container.appendChild(draggedItem);
+                    // Вставка ПЕРЕД этим элементом
+                    if (this !== draggedItem) {
+                        container.insertBefore(draggedItem, this);
+                    }
                 }
             });
 
@@ -828,11 +821,9 @@
                 allRows.forEach((row, idx) => {
                     row.dataset.index = idx;
                     row.querySelectorAll('.move-up, .move-down, .remove-btn, .time-input, .flex-text').forEach(el => {
-                        el.dataset.index = idx;
+                        if (el) el.dataset.index = idx;
                     });
                 });
-
-                // 3. НЕ ПЕРЕРИСОВЫВАЕМ КОНТЕНТ (главная фишка плавности)
             });
         });
     }
