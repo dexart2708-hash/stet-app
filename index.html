@@ -100,6 +100,8 @@
     .admin-status .status-badge.admin { background: var(--accent); color: #fff; }
     .admin-status button { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); padding: 2px 12px; border-radius: 50px; cursor: pointer; font-size: 0.7rem; color: #fff; }
     .admin-status button.admin-btn { background: var(--accent); border-color: var(--accent); }
+    .admin-status button.backup-btn { background: #10b981; border-color: #10b981; color: #fff; display: none; margin-right: 4px; }
+    .admin-status button.backup-btn:hover { background: #059669; border-color: #059669; }
 
     .app-body { display: flex; flex: 1; overflow: hidden; }
 
@@ -170,6 +172,12 @@
     .content-render table th, .content-render table td { border: 1px solid var(--border); padding: 8px 10px; text-align: left; }
     .content-render table th { background: var(--sidebar-bg); font-weight: 600; }
     
+    /* ===== ПРОГРЕСС БАР ДЛЯ ЧЕК-ЛИСТА ===== */
+    .progress-wrap { margin-bottom: 16px; padding-bottom: 8px; display: flex; flex-direction: column; gap: 6px; }
+    .progress-text { font-size: 0.8rem; font-weight: 500; color: var(--text-secondary); letter-spacing: 0.3px; }
+    .progress-bar { width: 100%; height: 4px; background: var(--border); border-radius: 10px; overflow: hidden; }
+    .progress-fill { height: 100%; background: var(--accent); border-radius: 10px; transition: width 0.3s ease; }
+
     .checklist { display: flex; flex-direction: column; gap: 6px; margin-bottom: 1rem; }
     .checklist-item { display: flex; align-items: stretch; border-radius: var(--radius-sm); transition: var(--transition); border: 1px solid var(--border); overflow: hidden; background: var(--bg-main); box-shadow: var(--shadow); }
     .checklist-item:hover { box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05); }
@@ -268,6 +276,9 @@
         <span id="syncText">Инициализация...</span>
       </div>
       <div class="admin-status">
+        <button class="backup-btn" id="exportDataBtn"><i class="fas fa-download"></i> Бекап</button>
+        <button class="backup-btn" id="importDataBtn"><i class="fas fa-upload"></i> Импорт</button>
+        <input type="file" id="importFileInput" accept=".json" style="display: none;" />
         <span class="status-badge viewer" id="statusBadge">Просмотр</span>
         <button id="adminToggle">Вход</button>
       </div>
@@ -652,7 +663,7 @@
         if (editingId === node.id) {
           html += renderEditableChecklist(node);
         } else {
-          // Прогресс-бар
+          // ПРОГРЕСС-БАР
           const items = node.items || [];
           const total = items.length;
           const done = items.filter(i => i.checked).length;
@@ -867,7 +878,7 @@
     }
 
     // ============================================================
-    // 7. ИНИЦИАЛИЗАЦИЯ РЕДАКТОРА QUIL (ИЗМЕНЕНО: Загрузка через Base64)
+    // 7. ИНИЦИАЛИЗАЦИЯ РЕДАКТОРА QUIL (Base64)
     // ============================================================
     let quillEditor = null;
 
@@ -956,9 +967,7 @@
                theme: 'snow'
            });
 
-           // =========================================================================
-           // ИЗМЕНЕНО: Прямая загрузка в Base64 (работает без внешних серверов)
-           // =========================================================================
+           // ЗАГРУЗКА КАРТИНОК (Base64 локально)
            function resizeAndCompressImage(file, maxWidth, maxHeight, quality) {
                return new Promise((resolve, reject) => {
                    const reader = new FileReader();
@@ -1013,15 +1022,12 @@
                    if (!file) return;
 
                    const range = quillEditor.getSelection(true);
-                   const tempText = '⏳ Сжатие изображения (Base64)...';
+                   const tempText = '⏳ Сжатие изображения...';
                    const startIdx = range.index;
                    quillEditor.insertText(startIdx, tempText);
 
                    try {
-                       // 1. Сжимаем и получаем DataURL (строка Base64)
                        const base64String = await resizeAndCompressImage(file, 1200, 1200, 0.8);
-                       
-                       // Удаляем текст загрузки и вставляем Base64
                        quillEditor.deleteText(startIdx, tempText.length);
                        quillEditor.insertEmbed(startIdx, 'image', base64String);
                    } catch (error) {
@@ -1033,7 +1039,6 @@
                    }
                };
            });
-           // =========================================================================
 
            const node = findNode(data.sections, document.getElementById('modalOverlay').dataset.editId);
            if (node && node.content) {
@@ -1101,7 +1106,7 @@
     }
 
     // ============================================================
-    // 8. УДАЛЕНИЕ И СКАЧИВАНИЕ
+    // 8. УДАЛЕНИЕ
     // ============================================================
     function deleteSection(id) {
       if (!isAdmin) return;
@@ -1114,7 +1119,52 @@
     }
 
     // ============================================================
-    // 9. ИНИЦИАЛИЗАЦИЯ
+    // 9. ЭКСПОРТ / ИМПОРТ (НОВЫЕ КНОПКИ)
+    // ============================================================
+    function exportData() {
+      const json = JSON.stringify(data, null, 2);
+      const blob = new Blob([json], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'hotel_backup_data.json';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+
+    function importData() {
+      document.getElementById('importFileInput').click();
+    }
+
+    function handleImportFile(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function(ev) {
+        try {
+          const imported = JSON.parse(ev.target.result);
+          if (!imported.sections || !Array.isArray(imported.sections)) {
+            throw new Error('Неверный формат JSON. Убедитесь, что файл является бекапом.');
+          }
+          data = imported;
+          saveData();
+          renderTree();
+          if (data.sections.length > 0) selectedId = data.sections[0].id;
+          else selectedId = null;
+          renderContent(selectedId);
+          alert('✅ Данные успешно импортированы!');
+        } catch (err) {
+          alert('❌ Ошибка импорта: ' + err.message);
+        }
+      };
+      reader.readAsText(file);
+      e.target.value = '';
+    }
+
+    // ============================================================
+    // 10. ИНИЦИАЛИЗАЦИЯ
     // ============================================================
     async function initData() {
       const local = JSON.parse(localStorage.getItem('hotelChecklistData'));
@@ -1129,7 +1179,7 @@
     }
 
     // ============================================================
-    // 10. ЗАПУСК
+    // 11. ЗАПУСК ПРИЛОЖЕНИЯ
     // ============================================================
     document.addEventListener('DOMContentLoaded', function() {
       const savedTheme = localStorage.getItem('hotelChecklistTheme') || 'default';
@@ -1159,6 +1209,8 @@
         this.textContent = isAdmin ? 'Выйти' : 'Вход';
         this.classList.toggle('admin-btn', isAdmin);
         document.getElementById('addSectionBtn').classList.toggle('hidden', !isAdmin);
+        document.getElementById('exportDataBtn').style.display = isAdmin ? 'inline-block' : 'none';
+        document.getElementById('importDataBtn').style.display = isAdmin ? 'inline-block' : 'none';
         renderTree(); renderContent(selectedId);
       });
 
@@ -1194,6 +1246,10 @@
           openEditModal('new');
         });
       }
+
+      document.getElementById('exportDataBtn').addEventListener('click', exportData);
+      document.getElementById('importDataBtn').addEventListener('click', importData);
+      document.getElementById('importFileInput').addEventListener('change', handleImportFile);
 
       initData();
     });
