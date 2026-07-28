@@ -1,6 +1,6 @@
 const CACHE_NAME = 'checklist-v3'; // ВАЖНО: Версия обновлена, чтобы браузер сбросил старый кеш
 const FILES_TO_CACHE = [
-  '/',
+  '.',
   '/index.html',
   '/manifest.json', // Добавил файл манифеста
   'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css',
