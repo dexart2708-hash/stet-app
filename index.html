@@ -418,6 +418,7 @@
         updateSyncStatus('offline', 'Офлайн');
       }
     }
+
     async function pullFromFirebase() {
       if (!db) return false;
       try {
@@ -429,23 +430,42 @@
             data = cloudData; localStorage.setItem('hotelChecklistData', JSON.stringify(data));
             updateSyncStatus('online', 'Синхронизировано');
             return true;
+          } else {
+            console.log('⚠️ Firebase вернул пустой массив. Оставляем локальные данные.');
           }
         }
         return false;
       } catch (err) {
-        firebaseAvailable = false; updateSyncStatus('offline', 'Офлайн');
+        console.warn('Firebase pull error:', err);
+        firebaseAvailable = false;
+        updateSyncStatus('offline', 'Офлайн');
         return false;
       }
     }
 
+    // ============================================================
+    // 2. РАБОТА С ЛОКАЛЬНЫМ ХРАНИЛИЩЕМ (Эти функции искал браузер)
+    // ============================================================
+    function loadFromLocalStorage() {
+      const stored = localStorage.getItem('hotelChecklistData');
+      if (stored) {
+        try { return JSON.parse(stored); } catch (e) {}
+      }
+      return null;
+    }
+
+    function saveToLocalStorage(dataObj) {
+      localStorage.setItem('hotelChecklistData', JSON.stringify(dataObj));
+    }
+
     function saveData() {
       if (!data) return;
-      localStorage.setItem('hotelChecklistData', JSON.stringify(data));
+      saveToLocalStorage(data);
       if (navigator.onLine && db) pushToFirebase();
     }
 
     // ============================================================
-    // 2. РЕНДЕРИНГ ДЕРЕВА
+    // 3. ИНИЦИАЛИЗАЦИЯ И РЕНДЕРИНГ ДЕРЕВА
     // ============================================================
     function renderTree() {
       const container = document.getElementById('treeContainer');
@@ -559,7 +579,7 @@
     }
 
     // ============================================================
-    // 3. DRAG & DROP
+    // 4. DRAG & DROP ДЕРЕВА
     // ============================================================
     function bindTreeDragDropEvents(container) {
         let draggedId = null;
@@ -628,7 +648,7 @@
     }
 
     // ============================================================
-    // 4. РЕНДЕРИНГ КОНТЕНТА
+    // 5. РЕНДЕРИНГ КОНТЕНТА (ЧЕКБОКСЫ И ПРОГРЕСС-БАР)
     // ============================================================
     function renderContent(id) {
       const panel = document.getElementById('contentPanel');
@@ -717,7 +737,7 @@
     }
 
     // ============================================================
-    // 5. РЕДАКТИРОВАНИЕ ЧЕК-ЛИСТА
+    // 6. РЕДАКТИРОВАНИЕ ЧЕК-ЛИСТА
     // ============================================================
     function renderEditableChecklist(node) {
       let html = `<div class="edit-checklist" id="editableChecklistContainer">`;
@@ -801,7 +821,7 @@
     }
 
     // ============================================================
-    // 6. ПЛАВНЫЙ DRAG AND DROP
+    // 7. ПЛАВНЫЙ DRAG AND DROP
     // ============================================================
     function enableDragAndDrop(list) {
         let draggedItem = null;
@@ -857,7 +877,7 @@
     }
 
     // ============================================================
-    // 7. ИНИЦИАЛИЗАЦИЯ РЕДАКТОРА QUIL
+    // 8. ИНИЦИАЛИЗАЦИЯ РЕДАКТОРА QUIL (ЗАГРУЗКА КАРТИНОК)
     // ============================================================
     let quillEditor = null;
 
@@ -1019,7 +1039,7 @@
     }
 
     // ============================================================
-    // 8. УДАЛЕНИЕ И СКАЧИВАНИЕ
+    // 9. УДАЛЕНИЕ
     // ============================================================
     function deleteSection(id) {
       if (!isAdmin) return;
@@ -1032,50 +1052,48 @@
     }
 
     // ============================================================
-    // 9. УСИЛЕННАЯ ИНИЦИАЛИЗАЦИЯ (ИСПРАВЛЕНИЕ ПУСТОГО ЭКРАНА)
+    // 10. ГЛАВНАЯ ИНИЦИАЛИЗАЦИЯ
     // ============================================================
     async function initData() {
       console.log('📦 Запуск initData...');
       
-      // 1. Пробуем загрузить локальные данные
+      // 1. Загружаем локальные данные
       let local = loadFromLocalStorage();
       if (local && local.sections && local.sections.length > 0) {
         data = local;
+        console.log('✅ Загружены локальные данные');
       } else {
-        // 2. Если локальных нет или они пустые, сразу ставим дефолтные (начальные)
-        console.log('⚠️ Локальных данных нет, загружаем начальные.');
+        // 2. Если локальных нет — берем начальные
+        console.log('⚠️ Локальных данных нет, инициализация начальных');
         data = deepClone(INITIAL_DATA);
         saveToLocalStorage(data);
       }
 
-      // 3. Пытаемся стянуть свежие данные из Firebase
-      try {
-        const pulled = await pullFromFirebase();
-        if (pulled) {
-          console.log('✅ Данные обновлены из Firebase.');
-        } else {
-          console.log('ℹ️ Данные из Firebase пусты или нет соединения, остаёмся на локальных.');
-        }
-      } catch (e) {
-        console.warn('❌ Критическая ошибка при pullFromFirebase:', e);
-      }
+      // 3. Тянем из Firebase
+      const pulled = await pullFromFirebase();
+      if (pulled) console.log('✅ Данные обновлены из Firebase');
 
-      // 4. Финальная защита (третий рубеж). Если data всё еще null или пуст — принудительно восстанавливаем.
+      // 4. ЖЕСТКАЯ СТРАХОВКА (на случай, если data сломалась)
       if (!data || !data.sections || data.sections.length === 0) {
-        console.warn('⚠️ Экстренное восстановление данных (последний рубеж)!');
+        console.warn('🚨 АВАРИЙНОЕ ВОССТАНОВЛЕНИЕ ДАННЫХ!');
         data = deepClone(INITIAL_DATA);
         saveToLocalStorage(data);
       }
 
-      // 5. Выбираем первый раздел и рендерим.
-      if (!selectedId) selectedId = data.sections[0]?.id || null;
+      // 5. Рендерим
+      if (data.sections.length > 0) {
+        selectedId = data.sections[0].id;
+      } else {
+        selectedId = null;
+      }
+
       renderTree();
       renderContent(selectedId);
-      console.log('🎨 Рендеринг завершён.');
+      console.log('🎨 Рендеринг завершен.');
     }
 
     // ============================================================
-    // 10. ЗАПУСК
+    // 11. ЗАПУСК ПРИЛОЖЕНИЯ
     // ============================================================
     document.addEventListener('DOMContentLoaded', function() {
       const savedTheme = localStorage.getItem('hotelChecklistTheme') || 'default';
