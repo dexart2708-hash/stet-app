@@ -17,27 +17,29 @@
   <script src="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.js"></script>
 
   <style>
+    /* ===== СОВРЕМЕННЫЙ ДИЗАЙН И ПЕРЕМЕННЫЕ ===== */
     :root {
-      --primary: #0e1335;
-      --primary-light: #1a2355;
-      --primary-dark: #080a1f;
-      --accent: #eb8b0f;
-      --accent-hover: #d07d0d;
-      --sidebar-bg: #f8f9fc;
-      --sidebar-hover: #eef0f7;
-      --sidebar-active: #e2e6f0;
-      --text-primary: #1e293b;
+      --primary: #1e293b;       /* Мягкий тёмно-синий */
+      --primary-light: #334155;
+      --primary-dark: #0f172a;
+      --accent: #f59e0b;        /* Тёплый янтарный */
+      --accent-hover: #d97706;
+      --sidebar-bg: #f8fafc;
+      --sidebar-hover: #eef2f6;
+      --sidebar-active: #e2e8f0;
+      --text-primary: #0f172a;
       --text-secondary: #475569;
       --text-light: #94a3b8;
       --bg-main: #ffffff;
-      --bg-panel: #f5f7fc;
+      --bg-panel: #f1f5f9;
       --border: #e2e8f0;
-      --radius: 12px;
-      --radius-sm: 8px;
-      --transition: 0.25s ease;
+      --radius: 16px;
+      --radius-sm: 10px;
+      --transition: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
       --font: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       --header-bg: var(--primary);
       --header-text: #ffffff;
+      --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
     }
     [data-theme="forest"] { --primary: #1e6b3b; --primary-light: #2a8a4e; --primary-dark: #124d2a; --accent: #e48c00; --accent-hover: #c97a00; --header-bg: #1e6b3b; }
     [data-theme="sunset"] { --primary: #b85a2a; --primary-light: #d4703a; --primary-dark: #8f451f; --accent: #e48c00; --accent-hover: #c97a00; --header-bg: #b85a2a; }
@@ -139,12 +141,15 @@
 
     .section-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 16px; padding-bottom: 10px; border-bottom: 2px solid var(--border); flex-wrap: wrap; gap: 8px; }
     .section-header .title-group { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 150px; }
-    .section-header .title-group h2 { font-size: 1.2rem; font-weight: 700; color: var(--text-primary); word-break: break-word; }
+    .section-header .title-group h2 { font-size: 1.3rem; font-weight: 700; color: var(--text-primary); word-break: break-word; }
     .section-header .title-group .type-badge { font-size: 0.6rem; text-transform: uppercase; background: var(--primary); color: #fff; padding: 2px 10px; border-radius: 50px; font-weight: 600; flex-shrink: 0; }
     .section-header .content-actions { display: flex; gap: 6px; flex-wrap: wrap; }
     .section-header .content-actions button { background: none; border: 1px solid var(--border); padding: 5px 12px; border-radius: var(--radius-sm); cursor: pointer; font-size: 0.75rem; color: var(--text-secondary); transition: var(--transition); display: flex; align-items: center; gap: 5px; font-weight: 500; }
+    .section-header .content-actions button:hover { background: var(--sidebar-hover); border-color: var(--primary); color: var(--primary); }
     .section-header .content-actions button.primary-btn { background: var(--accent); border-color: var(--accent); color: #fff; }
+    .section-header .content-actions button.primary-btn:hover { background: var(--accent-hover); border-color: var(--accent-hover); color: #fff; }
     .section-header .content-actions button.danger-btn { border-color: #e74c3c; color: #e74c3c; }
+    .section-header .content-actions button.danger-btn:hover { border-color: #e74c3c; color: #e74c3c; background: rgba(231, 76, 60, 0.06); }
     .section-header .content-actions button.success-btn { background: #10b981; border-color: #10b981; color: #fff; }
 
     .content-render { font-size: 0.9rem; line-height: 1.6; color: var(--text-primary); }
@@ -156,8 +161,15 @@
     .content-render table th { background: var(--sidebar-bg); font-weight: 600; }
     .content-render img { max-width: 100%; height: auto; border-radius: var(--radius-sm); margin: 10px 0; }
     
-    .checklist { display: flex; flex-direction: column; gap: 4px; margin-bottom: 1rem; }
-    .checklist-item { display: flex; align-items: stretch; border-radius: var(--radius-sm); transition: all 0.2s ease; border: 1px solid var(--border); overflow: hidden; background: var(--bg-main); box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
+    /* ===== ПРОГРЕСС БАР ===== */
+    .progress-wrap { margin-bottom: 16px; padding-bottom: 8px; display: flex; flex-direction: column; gap: 6px; }
+    .progress-text { font-size: 0.8rem; font-weight: 500; color: var(--text-secondary); letter-spacing: 0.3px; }
+    .progress-bar { width: 100%; height: 4px; background: var(--border); border-radius: 10px; overflow: hidden; }
+    .progress-fill { height: 100%; background: var(--accent); border-radius: 10px; transition: width 0.3s ease; }
+
+    .checklist { display: flex; flex-direction: column; gap: 6px; margin-bottom: 1rem; }
+    .checklist-item { display: flex; align-items: stretch; border-radius: var(--radius-sm); transition: var(--transition); border: 1px solid var(--border); overflow: hidden; background: var(--bg-main); box-shadow: var(--shadow); }
+    .checklist-item:hover { box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05); }
     .checklist-item .time { flex: 0 0 80px; font-weight: 600; color: #fff; background: var(--primary); padding: 10px 10px; font-size: 0.75rem; display: flex; align-items: center; justify-content: center; }
     .checklist-item .task { flex: 1; padding: 10px 14px; display: flex; align-items: center; background: var(--bg-main); font-size: 0.85rem; line-height: 1.4; }
     .checklist-item .task .checkbox { margin-right: 12px; flex-shrink: 0; width: 20px; height: 20px; border: 2px solid var(--border); border-radius: 4px; cursor: pointer; background: #fff; display: flex; align-items: center; justify-content: center; }
@@ -180,16 +192,27 @@
     @media (max-width: 768px) {
       .sidebar { width: 240px; min-width: 240px; }
       .content-panel { padding: 12px 14px 20px; }
-      .edit-row { flex-wrap: wrap; gap: 4px; }
-      .edit-row input.time-input { flex: 0 0 60px; }
-      .edit-row input.flex-text { flex: 1 1 100%; }
+      .checklist-item .time { flex: 0 0 60px; font-size: 0.7rem; }
     }
     @media (max-width: 600px) {
       .app-body { flex-direction: column; }
       .sidebar { width: 100%; min-width: unset; max-height: 40vh; border-right: none; border-bottom: 1px solid var(--border); }
       .content-panel { flex: 1; overflow-y: auto; padding: 10px 12px 20px; }
-      .section-header .title-group h2 { font-size: 1rem; }
-      .checklist-item .time { flex: 0 0 60px; font-size: 0.7rem; }
+      .section-header .title-group h2 { font-size: 1.1rem; }
+    }
+
+    /* ===== СТИЛИ ДЛЯ ПЕЧАТИ / PDF ===== */
+    @media print {
+      .app-header, .sidebar, .section-header .content-actions, .edit-toolbar, #sidebar, .sync-indicator, .admin-status { display: none !important; }
+      .app-body { display: block !important; overflow: visible !important; }
+      body { background: #fff !important; height: auto !important; overflow: visible !important; }
+      .content-panel { padding: 20px; height: auto !important; overflow: visible !important; }
+      .checklist-item { page-break-inside: avoid; border: 1px solid #e2e8f0 !important; box-shadow: none !important; }
+      .time { background: #0e1335 !important; color: #fff !important; }
+      .section-header { border-bottom: 2px solid #0e1335 !important; padding-bottom: 10px !important; margin-bottom: 16px !important; }
+      .progress-wrap { display: flex !important; margin-bottom: 12px !important; }
+      .checkbox.checked { background: #10b981 !important; border-color: #10b981 !important; }
+      .modal-overlay { display: none !important; }
     }
 
     /* ===== МОДАЛЬНОЕ ОКНО ===== */
@@ -206,16 +229,7 @@
     .modal-body .field input:focus, .modal-body .field select:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(235, 139, 15, 0.15); }
     
     #editor-field { display: none; margin-top: 10px; width: 100%; }
-    #editor-container { 
-      height: 350px !important; 
-      min-height: 350px !important; 
-      max-height: 350px !important;
-      background: #fff; 
-      border: 1px solid var(--border); 
-      border-radius: var(--radius-sm); 
-      width: 100% !important;
-      display: block !important;
-    }
+    #editor-container { height: 350px !important; min-height: 350px !important; background: #fff; border: 1px solid var(--border); border-radius: var(--radius-sm); width: 100% !important; }
     .ql-editor { font-family: var(--font); font-size: 0.9rem; }
     .modal-footer { padding: 12px 20px; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: 8px; flex-shrink: 0; background: var(--bg-panel); }
     .modal-footer button { padding: 6px 20px; border-radius: var(--radius-sm); border: none; cursor: pointer; font-size: 0.85rem; font-weight: 500; min-height: 36px; }
@@ -604,7 +618,7 @@
     }
 
     // ============================================================
-    // 4. РЕНДЕРИНГ КОНТЕНТА
+    // 4. РЕНДЕРИНГ КОНТЕНТА (ЧЕКБОКСЫ И ПРОГРЕСС-БАР)
     // ============================================================
     function renderContent(id) {
       const panel = document.getElementById('contentPanel');
@@ -625,7 +639,7 @@
         } else {
           if (isAdmin) html += `<button class="primary-btn" id="editSectionBtn"><i class="fas fa-pen"></i> Редактировать</button>`;
         }
-        html += `<button class="download-btn" id="downloadChecklistBtn"><i class="fas fa-download"></i> Скачать чек-лист</button>`;
+        html += `<button class="download-btn" id="printChecklistBtn"><i class="fas fa-file-pdf"></i> Экспорт / Печать (PDF)</button>`;
       } else {
         if (isAdmin) html += `<button class="primary-btn" id="openModalEditBtn"><i class="fas fa-pen"></i> Редактировать раздел</button>`;
       }
@@ -635,9 +649,24 @@
         if (editingId === node.id) {
           html += renderEditableChecklist(node);
         } else {
+          // Прогресс-бар
+          const items = node.items || [];
+          const total = items.length;
+          const done = items.filter(i => i.checked).length;
+          const percent = total > 0 ? (done / total) * 100 : 0;
+
+          html += `<div class="progress-wrap">
+                     <div class="progress-text">${done} из ${total} выполнено</div>
+                     <div class="progress-bar"><div class="progress-fill" style="width: ${percent}%;"></div></div>
+                   </div>`;
+
           html += `<div class="checklist">`;
-          for (const item of node.items || []) {
-            html += `<div class="checklist-item"><div class="time">${escapeHtml(item.time)}</div><div class="task"><span class="checkbox"></span><span class="text">${escapeHtml(item.task)}</span></div></div>`;
+          for (let i = 0; i < items.length; i++) {
+            const item = items[i];
+            html += `<div class="checklist-item">`;
+            html += `<div class="time">${escapeHtml(item.time)}</div>`;
+            html += `<div class="task"><span class="checkbox ${item.checked ? 'checked' : ''}" data-index="${i}"></span><span class="text">${escapeHtml(item.task)}</span></div>`;
+            html += `</div>`;
           }
           html += `</div>`;
         }
@@ -647,12 +676,22 @@
       html += `</div>`;
       panel.innerHTML = html;
 
+      // ОБРАБОТЧИКИ ЧЕКБОКСОВ (С сохранением в Firebase)
       panel.querySelectorAll('.checkbox').forEach(el => {
-        el.addEventListener('click', function() { this.classList.toggle('checked'); });
+        el.addEventListener('click', function() {
+          const idx = parseInt(this.dataset.index);
+          const node = findNode(data.sections, id);
+          if (node && node.items && node.items[idx]) {
+            node.items[idx].checked = !node.items[idx].checked;
+            saveData();
+            renderContent(id); // Перерисовываем для обновления прогресс-бара и галочки
+          }
+        });
       });
       
-      const downloadBtn = document.getElementById('downloadChecklistBtn');
-      if (downloadBtn) downloadBtn.addEventListener('click', downloadChecklist);
+      // ОБРАБОТЧИК ПЕЧАТИ PDF
+      const printBtn = document.getElementById('printChecklistBtn');
+      if (printBtn) printBtn.addEventListener('click', function() { window.print(); });
 
       const editBtn = document.getElementById('editSectionBtn');
       if (editBtn) editBtn.addEventListener('click', function() { editingId = node.id; renderContent(node.id); });
@@ -722,7 +761,7 @@
 
     function addEditableItem(id) {
       const node = findNode(data.sections, id);
-      if (node) { node.items.push({ time: '', task: 'Новая задача' }); saveData(); renderContent(id); }
+      if (node) { node.items.push({ time: '', task: 'Новая задача', checked: false }); saveData(); renderContent(id); }
     }
     function removeEditableItem(id, index) {
       const node = findNode(data.sections, id);
@@ -748,14 +787,14 @@
         const timeInput = row.querySelector('.time-input');
         const taskInput = row.querySelector('.flex-text');
         if (taskInput && taskInput.value.trim()) {
-          newItems.push({ time: timeInput ? timeInput.value.trim() : '', task: taskInput.value.trim() });
+          newItems.push({ time: timeInput ? timeInput.value.trim() : '', task: taskInput.value.trim(), checked: false });
         }
       });
       node.items = newItems; saveData(); editingId = null; renderContent(id);
     }
 
     // ============================================================
-    // 6. ИДЕАЛЬНО ПЛАВНЫЙ DRAG AND DROP (Верх/Низ)
+    // 6. ПЛАВНЫЙ DRAG AND DROP (Верх/Низ)
     // ============================================================
     function enableDragAndDrop(list) {
         let draggedItem = null;
@@ -784,13 +823,11 @@
                 const container = this.parentElement;
 
                 if (isBelowMidpoint) {
-                    // Вставка ПОСЛЕ этого элемента
                     const next = this.nextElementSibling;
                     if (next !== draggedItem) {
                         container.insertBefore(draggedItem, next);
                     }
                 } else {
-                    // Вставка ПЕРЕД этим элементом
                     if (this !== draggedItem) {
                         container.insertBefore(draggedItem, this);
                     }
@@ -803,7 +840,6 @@
 
                 const container = draggedItem.parentElement;
                 
-                // 1. Синхронизируем данные с новым порядком в DOM
                 const newOrder = [];
                 container.querySelectorAll('.edit-row').forEach(row => {
                     const idx = parseInt(row.dataset.index);
@@ -816,7 +852,6 @@
                     saveData();
                 }
 
-                // 2. Обновляем индексы в DOM, чтобы кнопки работали правильно
                 const allRows = container.querySelectorAll('.edit-row');
                 allRows.forEach((row, idx) => {
                     row.dataset.index = idx;
@@ -949,7 +984,7 @@
       if (id === 'new') {
         const newNode = { id: generateId(), title: title, type: type };
         if (type === 'text') newNode.content = contentToSave;
-        else if (type === 'checklist') newNode.items = [{ time: '09:00', task: 'Пример задачи' }];
+        else if (type === 'checklist') newNode.items = [{ time: '09:00', task: 'Пример задачи', checked: false }];
         
         let parent = null;
         if (selectedId) {
@@ -974,7 +1009,7 @@
           delete node.items; delete node.content;
           node.type = type;
           if (type === 'text') node.content = contentToSave;
-          else if (type === 'checklist') node.items = [{ time: '09:00', task: 'Пример задачи' }];
+          else if (type === 'checklist') node.items = [{ time: '09:00', task: 'Пример задачи', checked: false }];
         } else if (type === 'text') {
           node.content = contentToSave;
         }
@@ -994,42 +1029,6 @@
       if (selectedId === id) selectedId = data.sections.length > 0 ? data.sections[0].id : null;
       saveData(); renderTree();
       if (selectedId) renderContent(selectedId); else document.getElementById('contentPanel').innerHTML = '';
-    }
-
-    function downloadChecklist() {
-      const node = findNode(data.sections, selectedId);
-      if (!node || node.type !== 'checklist') return;
-      const rows = document.querySelectorAll('.checklist-item');
-      const items = [];
-      rows.forEach(row => {
-        const timeEl = row.querySelector('.time'), taskEl = row.querySelector('.text');
-        const checkbox = row.querySelector('.checkbox');
-        items.push({ time: timeEl.textContent.trim(), task: taskEl.textContent.trim(), checked: checkbox.classList.contains('checked') });
-      });
-      const title = node.title;
-      let html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${escapeHtml(title)}</title>
-      <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-      <style>
-        body { font-family: 'Inter', sans-serif; background: #f5f7fc; padding: 20px; color: #1e293b; }
-        h2 { font-size: 1.2rem; font-weight: 700; margin-bottom: 16px; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px; }
-        .checklist { display: flex; flex-direction: column; gap: 4px; }
-        .checklist-item { display: flex; align-items: stretch; border-radius: 12px; border: 1px solid #e2e8f0; overflow: hidden; background: #ffffff; box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
-        .time { flex: 0 0 80px; font-weight: 600; color: #fff; background: #0e1335; padding: 10px 10px; font-size: 0.75rem; display: flex; align-items: center; justify-content: center; }
-        .task { flex: 1; padding: 10px 14px; display: flex; align-items: center; background: #ffffff; font-size: 0.85rem; line-height: 1.4; }
-        .checkbox { margin-right: 12px; flex-shrink: 0; width: 20px; height: 20px; border: 2px solid #e2e8f0; border-radius: 4px; display: inline-block; }
-        .checkbox.checked { background: #10b981; border-color: #10b981; position: relative; }
-        .checkbox.checked::after { content: "✓"; color: #fff; font-size: 0.8rem; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); }
-      </style></head><body>
-      <h2>${escapeHtml(title)}</h2><div class="checklist">`;
-      for (const item of items) {
-        html += `<div class="checklist-item"><div class="time">${escapeHtml(item.time)}</div><div class="task"><span class="checkbox ${item.checked ? 'checked' : ''}"></span><span>${escapeHtml(item.task)}</span></div></div>`;
-      }
-      html += `</div></body></html>`;
-      
-      const blob = new Blob([html], { type: 'text/html' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a'); a.href = url; a.download = `${title.replace(/[^a-zа-яё0-9\s]/gi, '_')}.html`;
-      document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
     }
 
     // ============================================================
