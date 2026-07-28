@@ -13,7 +13,6 @@
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 
-  <!-- Только основной редактор Quill, без плагина таблиц -->
   <link href="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.snow.css" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.js"></script>
 
@@ -271,7 +270,7 @@
     <main class="content-panel" id="contentPanel"></main>
   </div>
 
-  <!-- ===== МОДАЛЬНОЕ ОКНО ДЛЯ РЕДАКТИРОВАНИЯ РАЗДЕЛОВ ===== -->
+  <!-- ===== МОДАЛЬНОЕ ОКНО ===== -->
   <div class="modal-overlay" id="modalOverlay">
     <div class="modal">
       <div class="modal-header">
@@ -305,7 +304,7 @@
 
   <script>
     // ============================================================
-    // 1. FIREBASE И ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ
+    // 1. FIREBASE
     // ============================================================
     const firebaseConfig = {
       apiKey: "AIzaSyDdm0kaIesCu4CBennxPVoPhXwyAyAiwIg",
@@ -414,7 +413,7 @@
     }
 
     // ============================================================
-    // 2. РЕНДЕРИНГ ДЕРЕВА И КОНТЕНТА
+    // 2. РЕНДЕРИНГ ДЕРЕВА
     // ============================================================
     function renderTree() {
       const container = document.getElementById('treeContainer');
@@ -515,7 +514,7 @@
     }
 
     // ============================================================
-    // 3. РЕНДЕРИНГ КОНТЕНТА И ЧЕК-ЛИСТОВ
+    // 3. РЕНДЕРИНГ КОНТЕНТА
     // ============================================================
     function renderContent(id) {
       const panel = document.getElementById('contentPanel');
@@ -555,7 +554,22 @@
       } else if (node.type === 'text') { 
         html += node.content || '<p style="color:var(--text-light);font-style:italic;">Нажмите "Редактировать раздел", чтобы заполнить инструкцию.</p>'; 
       }
-      else if (node.type === 'group') { html += `<p style="color:var(--text-light);font-style:italic;">Выберите подраздел слева.</p>`; }
+      else if (node.type === 'group') { 
+        // Вывод списка подразделов для Группы
+        if (node.children && node.children.length > 0) {
+          html += `<p style="color:var(--text-light);font-style:italic;margin-bottom:10px;">Это папка. Кликните на подраздел в левом меню:</p><ul>`;
+          for (const child of node.children) {
+            const icon = child.type === 'checklist' ? 'fa-check-square' : child.type === 'group' ? 'fa-folder' : 'fa-file-alt';
+            html += `<li style="cursor:pointer;padding:4px 0;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;" onclick="selectNode('${child.id}')">
+              <i class="fas ${icon}" style="color:var(--primary);width:18px;"></i>
+              <span>${escapeHtml(child.title)}</span>
+            </li>`;
+          }
+          html += `</ul>`;
+        } else {
+          html += `<p style="color:var(--text-light);font-style:italic;">Это пустая папка. Выберите её в левом меню и нажмите "+ Добавить", чтобы создать внутри подраздел.</p>`;
+        }
+      }
       html += `</div>`;
       panel.innerHTML = html;
 
@@ -583,7 +597,7 @@
     }
 
     // ============================================================
-    // 4. РЕДАКТИРОВАНИЕ ЧЕК-ЛИСТА (Инлайн)
+    // 4. РЕДАКТИРОВАНИЕ ЧЕК-ЛИСТА
     // ============================================================
     function renderEditableChecklist(node) {
       let html = `<div class="edit-checklist" id="editableChecklistContainer">`;
@@ -608,7 +622,6 @@
       setTimeout(() => {
         const addBtn = document.getElementById('addItemBtn');
         if (addBtn) addBtn.addEventListener('click', function() { addEditableItem(node.id); });
-        
         document.querySelectorAll('.remove-btn').forEach(btn => {
           btn.addEventListener('click', function() { removeEditableItem(node.id, parseInt(this.dataset.index)); });
         });
@@ -668,7 +681,7 @@
     }
 
     // ============================================================
-    // 5. DRAG AND DROP (Мышь/Touch)
+    // 5. DRAG AND DROP
     // ============================================================
     let draggedItem = null;
     function enableDragAndDrop(list) {
@@ -724,7 +737,7 @@
     }
 
     // ============================================================
-    // 6. СТАБИЛЬНАЯ ИНИЦИАЛИЗАЦИЯ QUIL (БЕЗ ТАБЛИЦ)
+    // 6. ИСПРАВЛЕНИЕ РЕДАКТОРА (Без дублей)
     // ============================================================
     let quillEditor = null;
 
@@ -741,13 +754,16 @@
       const editorField = document.getElementById('editor-field');
       const container = document.getElementById('editor-container');
 
-      // Полный сброс контейнера перед открытием
       if (quillEditor) {
         quillEditor = null;
       }
+      // Удаляем старый тулбар Quill, который появляется перед контейнером
+      const oldToolbar = container.previousElementSibling;
+      if (oldToolbar && oldToolbar.classList.contains('ql-toolbar')) {
+        oldToolbar.remove();
+      }
       container.innerHTML = ''; 
 
-      // Обработка изменения типа
       document.getElementById('editType').onchange = function() {
         const t = this.value;
         if (t === 'text') {
@@ -758,7 +774,6 @@
         }
       };
 
-      // Инициализация по умолчанию
       const type = document.getElementById('editType').value;
       if (type === 'text') {
         editorField.style.display = 'block';
@@ -783,10 +798,14 @@
        const container = document.getElementById('editor-container');
        if (!container) return;
        
+       // Еще раз проверяем и удаляем возможный старый тулбар перед инициализацией
+       const oldToolbar = container.previousElementSibling;
+       if (oldToolbar && oldToolbar.classList.contains('ql-toolbar')) {
+           oldToolbar.remove();
+       }
        container.innerHTML = ''; 
        
        try {
-           // Базовый список инструментов без "table"
            const toolbarConfig = [
                [{ header: [1, 2, 3, false] }],
                ['bold', 'italic', 'underline', 'strike'],
@@ -796,9 +815,7 @@
            ];
 
            quillEditor = new Quill(container, {
-               modules: {
-                   toolbar: toolbarConfig
-               },
+               modules: { toolbar: toolbarConfig },
                theme: 'snow'
            });
            
@@ -810,7 +827,7 @@
            }
        } catch (e) {
            console.error("Ошибка создания Quill:", e);
-           container.innerHTML = `<p style="color:#e74c3c;padding:20px;">Не удалось загрузить визуальный редактор. Проверьте интернет-соединение и перезагрузите страницу.</p>`;
+           container.innerHTML = `<p style="color:#e74c3c;padding:20px;">Не удалось загрузить визуальный редактор.</p>`;
        }
     }
 
@@ -830,7 +847,23 @@
         if (type === 'text') newNode.content = quillEditor ? quillEditor.root.innerHTML : '';
         else if (type === 'checklist') newNode.items = [{ time: '09:00', task: 'Пример задачи' }];
         else if (type === 'group') newNode.children = [];
-        data.sections.push(newNode);
+        
+        // Логика добавления в выбранную папку (если она выбрана и является группой)
+        let parent = null;
+        if (selectedId) {
+          const sel = findNode(data.sections, selectedId);
+          if (sel && sel.type === 'group') parent = sel;
+          else {
+            const p = getParent(data.sections, selectedId);
+            if (p) parent = p;
+          }
+        }
+        if (parent && parent.type === 'group') {
+          parent.children.push(newNode);
+        } else {
+          data.sections.push(newNode);
+        }
+        
         saveData(); renderTree(); selectNode(newNode.id);
         closeModal(); return;
       }
@@ -853,7 +886,7 @@
     }
 
     // ============================================================
-    // 7. УДАЛЕНИЕ РАЗДЕЛА
+    // 7. УДАЛЕНИЕ И СКАЧИВАНИЕ
     // ============================================================
     function deleteSection(id) {
       if (!isAdmin) return;
@@ -865,9 +898,6 @@
       if (selectedId) renderContent(selectedId); else document.getElementById('contentPanel').innerHTML = '';
     }
 
-    // ============================================================
-    // 8. СКАЧИВАНИЕ ЧЕК-ЛИСТА
-    // ============================================================
     function downloadChecklist() {
       const node = findNode(data.sections, selectedId);
       if (!node || node.type !== 'checklist') return;
@@ -905,7 +935,7 @@
     }
 
     // ============================================================
-    // 9. ИНИЦИАЛИЗАЦИЯ
+    // 8. ИНИЦИАЛИЗАЦИЯ
     // ============================================================
     async function initData() {
       const local = JSON.parse(localStorage.getItem('hotelChecklistData'));
@@ -920,7 +950,7 @@
     }
 
     // ============================================================
-    // 10. ЗАПУСК И НАВЕШИВАНИЕ СОБЫТИЙ
+    // 9. ЗАПУСК
     // ============================================================
     document.addEventListener('DOMContentLoaded', function() {
       const savedTheme = localStorage.getItem('hotelChecklistTheme') || 'default';
