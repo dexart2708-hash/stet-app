@@ -208,15 +208,16 @@
     .modal-body .field input[type="text"], .modal-body .field select { width: 100%; padding: 8px 12px; border: 1px solid var(--border); border-radius: var(--radius-sm); font-size: 0.9rem; font-family: var(--font); background: var(--bg-main); color: var(--text-primary); outline: none; }
     .modal-body .field input:focus, .modal-body .field select:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(235, 139, 15, 0.15); }
     
-    /* Исправление видимости редактора */
+    /* ИСПРАВЛЕНИЕ: Жесткая высота для редактора */
     #editor-field { display: none; margin-top: 10px; width: 100%; }
     #editor-container { 
       height: 350px !important; 
-      min-height: 350px; 
+      min-height: 350px !important; 
+      max-height: 350px !important;
       background: #fff; 
       border: 1px solid var(--border); 
       border-radius: var(--radius-sm); 
-      width: 100%;
+      width: 100% !important;
       display: block !important;
     }
     .ql-editor { font-family: var(--font); font-size: 0.9rem; }
@@ -727,7 +728,7 @@
     }
 
     // ============================================================
-    // 6. ИСПРАВЛЕННАЯ ЛОГИКА МОДАЛЬНОГО ОКНА И РЕДАКТОРА (Quill)
+    // 6. ФИНАЛЬНОЕ ИСПРАВЛЕНИЕ: ЖЕСТКАЯ ИНИЦИАЛИЗАЦИЯ QUIL
     // ============================================================
     let quillEditor = null;
 
@@ -743,76 +744,33 @@
       const editorField = document.getElementById('editor-field');
       const type = document.getElementById('editType').value;
 
-      // Сначала скрываем поле редактора
       editorField.style.display = 'none';
-
-      // Если это текстовый раздел, показываем его и инициализируем
-      if (type === 'text') {
-        editorField.style.display = 'block';
-
-        // Сбрасываем старый экземпляр редактора, чтобы он не залипал
-        if (quillEditor) {
-          quillEditor = null;
-        }
-
-        // Задержка на отрисовку блока в DOM
-        setTimeout(() => {
-          try {
-            // Инициализируем Quill с чистого листа
-            Quill.register('modules/table', QuillTable);
-            quillEditor = new Quill('#editor-container', {
-              modules: {
-                table: true,
-                toolbar: [
-                  [{ header: [1, 2, 3, false] }],
-                  ['bold', 'italic', 'underline', 'strike'],
-                  [{ list: 'ordered'}, { list: 'bullet' }],
-                  ['link', 'image'],
-                  [{ 'table': true }],
-                  ['clean']
-                ]
-              },
-              theme: 'snow'
-            });
-
-            // Загружаем данные, если это редактирование
-            if (node && node.content) {
-              const delta = quillEditor.clipboard.convert(node.content);
-              quillEditor.setContents(delta);
-            } else {
-              quillEditor.setText('Введите ваши инструкции, создайте таблицу или вставьте изображение...');
-            }
-          } catch (e) {
-            console.error("Ошибка инициализации Quill:", e);
-          }
-        }, 150);
+      if (quillEditor) {
+        quillEditor = null;
       }
 
+      // Сначала показываем модалку
       document.getElementById('modalOverlay').dataset.editId = id;
       document.getElementById('modalOverlay').classList.add('active');
 
+      // Жесткий обработчик смены типа
       document.getElementById('editType').onchange = function() {
         const t = this.value;
         if (t === 'text') {
           document.getElementById('editor-field').style.display = 'block';
-          // Если переключили тип, нужно пересоздать редактор
-          if (quillEditor) {
-             quillEditor = null;
-          }
-          setTimeout(() => {
-             try {
-                Quill.register('modules/table', QuillTable);
-                quillEditor = new Quill('#editor-container', {
-                  modules: { table: true, toolbar: [[{ header: [1, 2, 3, false] }], ['bold', 'italic', 'underline', 'strike'], [{ list: 'ordered'}, { list: 'bullet' }], ['link', 'image'], [{ 'table': true }], ['clean']] },
-                  theme: 'snow'
-                });
-                quillEditor.setText('Введите ваши инструкции...');
-             } catch(e) { console.error(e); }
-          }, 150);
+          // Полная перезагрузка редактора
+          if(quillEditor) quillEditor = null;
+          setTimeout(initQuillWithContent, 100);
         } else {
           document.getElementById('editor-field').style.display = 'none';
         }
       };
+
+      // Если сразу выбран текст, инициализируем с задержкой, чтобы DOM успел отрисоваться
+      if (type === 'text') {
+        editorField.style.display = 'block';
+        setTimeout(initQuillWithContent, 200);
+      }
 
       document.getElementById('modalClose').onclick = closeModal;
       document.getElementById('modalCancel').onclick = closeModal;
@@ -824,10 +782,48 @@
       };
     }
 
+    function initQuillWithContent() {
+      const container = document.getElementById('editor-container');
+      if (!container) return;
+
+      try {
+        Quill.register('modules/table', QuillTable);
+        quillEditor = new Quill('#editor-container', {
+          modules: {
+            table: true,
+            toolbar: [
+              [{ header: [1, 2, 3, false] }],
+              ['bold', 'italic', 'underline', 'strike'],
+              [{ list: 'ordered'}, { list: 'bullet' }],
+              ['link', 'image'],
+              [{ 'table': true }],
+              ['clean']
+            ]
+          },
+          theme: 'snow'
+        });
+
+        const node = findNode(data.sections, document.getElementById('modalOverlay').dataset.editId);
+        if (node && node.content) {
+          try {
+            const delta = quillEditor.clipboard.convert(node.content);
+            quillEditor.setContents(delta);
+          } catch (e) {
+            quillEditor.setText('Ошибка загрузки данных. Вы можете вставить текст заново.');
+          }
+        } else {
+          quillEditor.setText('Введите ваши инструкции, создайте таблицу или вставьте изображение...');
+        }
+      } catch (e) {
+        console.error('Ошибка создания Quill:', e);
+      }
+    }
+
     function closeModal() {
       document.getElementById('modalOverlay').classList.remove('active');
-      // Опционально: удалить экземпляр Quill при закрытии, чтобы не нагружать память
-      // if (quillEditor) { quillEditor = null; }
+      if (quillEditor) {
+        quillEditor = null;
+      }
     }
 
     function saveModalEdit(id) {
@@ -836,9 +832,14 @@
       if (!title) { alert('Введите название раздела.'); return; }
       const type = document.getElementById('editType').value;
 
+      let contentToSave = '';
+      if (type === 'text') {
+        contentToSave = quillEditor ? quillEditor.root.innerHTML : '';
+      }
+
       if (id === 'new') {
         const newNode = { id: generateId(), title: title, type: type };
-        if (type === 'text') newNode.content = quillEditor ? quillEditor.root.innerHTML : '';
+        if (type === 'text') newNode.content = contentToSave;
         else if (type === 'checklist') newNode.items = [{ time: '09:00', task: 'Пример задачи' }];
         else if (type === 'group') newNode.children = [];
         data.sections.push(newNode);
@@ -852,11 +853,11 @@
         if (node.type !== type) {
           delete node.items; delete node.content; delete node.children;
           node.type = type;
-          if (type === 'text') node.content = quillEditor ? quillEditor.root.innerHTML : '';
+          if (type === 'text') node.content = contentToSave;
           else if (type === 'checklist') node.items = [{ time: '09:00', task: 'Пример задачи' }];
           else if (type === 'group') node.children = [];
-        } else if (type === 'text' && quillEditor) {
-          node.content = quillEditor.root.innerHTML;
+        } else if (type === 'text') {
+          node.content = contentToSave;
         }
         saveData(); renderTree(); renderContent(node.id);
       }
