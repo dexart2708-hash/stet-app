@@ -12,12 +12,13 @@
   
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+  <!-- ДОБАВЛЕНО: Подключаем хранилище файлов Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
 
   <link href="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.snow.css" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.js"></script>
 
   <style>
-    /* ===== СОВРЕМЕННЫЙ ДИЗАЙН И ПЕРЕМЕННЫЕ ===== */
     :root {
       --primary: #1e293b;       /* Мягкий тёмно-синий */
       --primary-light: #334155;
@@ -152,6 +153,17 @@
     .section-header .content-actions button.danger-btn:hover { border-color: #e74c3c; color: #e74c3c; background: rgba(231, 76, 60, 0.06); }
     .section-header .content-actions button.success-btn { background: #10b981; border-color: #10b981; color: #fff; }
 
+    /* ===== ИЗМЕНЕНО: Стили для красивых и аккуратных картинок ===== */
+    .content-render img, .ql-editor img {
+      max-width: 100% !important;
+      height: auto !important;
+      border-radius: var(--radius-sm);
+      margin: 10px 0;
+      display: block;
+      max-height: 400px;
+      width: auto;
+    }
+
     .content-render { font-size: 0.9rem; line-height: 1.6; color: var(--text-primary); }
     .content-render h3 { font-size: 1.05rem; font-weight: 600; margin: 1.2rem 0 0.5rem; }
     .content-render p { margin: 0 0 0.6rem; }
@@ -159,14 +171,7 @@
     .content-render table { width: 100%; border-collapse: collapse; margin: 0.8rem 0; font-size: 0.8rem; }
     .content-render table th, .content-render table td { border: 1px solid var(--border); padding: 8px 10px; text-align: left; }
     .content-render table th { background: var(--sidebar-bg); font-weight: 600; }
-    .content-render img { max-width: 100%; height: auto; border-radius: var(--radius-sm); margin: 10px 0; }
     
-    /* ===== ПРОГРЕСС БАР ===== */
-    .progress-wrap { margin-bottom: 16px; padding-bottom: 8px; display: flex; flex-direction: column; gap: 6px; }
-    .progress-text { font-size: 0.8rem; font-weight: 500; color: var(--text-secondary); letter-spacing: 0.3px; }
-    .progress-bar { width: 100%; height: 4px; background: var(--border); border-radius: 10px; overflow: hidden; }
-    .progress-fill { height: 100%; background: var(--accent); border-radius: 10px; transition: width 0.3s ease; }
-
     .checklist { display: flex; flex-direction: column; gap: 6px; margin-bottom: 1rem; }
     .checklist-item { display: flex; align-items: stretch; border-radius: var(--radius-sm); transition: var(--transition); border: 1px solid var(--border); overflow: hidden; background: var(--bg-main); box-shadow: var(--shadow); }
     .checklist-item:hover { box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05); }
@@ -864,7 +869,7 @@
     }
 
     // ============================================================
-    // 7. ИНИЦИАЛИЗАЦИЯ РЕДАКТОРА QUIL
+    // 7. ИНИЦИАЛИЗАЦИЯ РЕДАКТОРА QUIL (ИЗМЕНЕНО: Добавлен обработчик картинок)
     // ============================================================
     let quillEditor = null;
 
@@ -952,7 +957,52 @@
                modules: { toolbar: toolbarConfig },
                theme: 'snow'
            });
-           
+
+           // =========================================================================
+           // ИЗМЕНЕНО: Обработчик загрузки картинок в Firebase Storage
+           // =========================================================================
+           quillEditor.getModule('toolbar').addHandler('image', function() {
+               // Создаем скрытый input для выбора файла
+               const input = document.createElement('input');
+               input.setAttribute('type', 'file');
+               input.setAttribute('accept', 'image/*');
+               input.click();
+
+               input.onchange = async () => {
+                   const file = input.files[0];
+                   if (!file) return;
+
+                   // Получаем текущую позицию курсора и вставляем временный текст
+                   const range = quillEditor.getSelection(true);
+                   quillEditor.insertText(range.index, '⏳ Загрузка изображения...');
+
+                   try {
+                       // Получаем доступ к Firebase Storage
+                       const storage = firebase.storage();
+                       // Создаем путь к файлу (папка images + уникальное имя)
+                       const fileRef = storage.ref(`images/${Date.now()}_${file.name}`);
+                       
+                       // Загружаем файл в облако
+                       await fileRef.put(file);
+                       
+                       // Получаем прямую ссылку на скачивание
+                       const downloadURL = await fileRef.getDownloadURL();
+
+                       // Удаляем временный текст загрузки
+                       quillEditor.deleteText(range.index, '⏳ Загрузка изображения...'.length);
+
+                       // Вставляем реальную картинку по ссылке
+                       quillEditor.insertEmbed(range.index, 'image', downloadURL);
+                   } catch (error) {
+                       console.error("Ошибка загрузки картинки:", error);
+                       // Если ошибка, удаляем текст загрузки и пишем об ошибке
+                       quillEditor.deleteText(range.index, '⏳ Загрузка изображения...'.length);
+                       quillEditor.insertText(range.index, '❌ Ошибка загрузки изображения.');
+                   }
+               };
+           });
+           // =========================================================================
+
            const node = findNode(data.sections, document.getElementById('modalOverlay').dataset.editId);
            if (node && node.content) {
                quillEditor.clipboard.dangerouslyPasteHTML(node.content);
