@@ -208,7 +208,6 @@
     .modal-body .field input[type="text"], .modal-body .field select { width: 100%; padding: 8px 12px; border: 1px solid var(--border); border-radius: var(--radius-sm); font-size: 0.9rem; font-family: var(--font); background: var(--bg-main); color: var(--text-primary); outline: none; }
     .modal-body .field input:focus, .modal-body .field select:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(235, 139, 15, 0.15); }
     
-    /* ИСПРАВЛЕНИЕ: Жесткая высота для редактора */
     #editor-field { display: none; margin-top: 10px; width: 100%; }
     #editor-container { 
       height: 350px !important; 
@@ -728,7 +727,7 @@
     }
 
     // ============================================================
-    // 6. ФИНАЛЬНОЕ ИСПРАВЛЕНИЕ: ЖЕСТКАЯ ИНИЦИАЛИЗАЦИЯ QUIL
+    // 6. ИСПРАВЛЕНИЕ: ЖЕСТКАЯ ИНИЦИАЛИЗАЦИЯ БЕЗ ТАЙМЕРОВ
     // ============================================================
     let quillEditor = null;
 
@@ -740,37 +739,38 @@
       document.getElementById('modalTitle').textContent = isNew ? 'Создать новый раздел' : 'Редактировать раздел';
       document.getElementById('editTitle').value = node ? node.title : '';
       document.getElementById('editType').value = node ? node.type : 'text';
+      document.getElementById('modalOverlay').dataset.editId = id;
       
       const editorField = document.getElementById('editor-field');
-      const type = document.getElementById('editType').value;
+      const container = document.getElementById('editor-container');
 
-      editorField.style.display = 'none';
+      // Полный сброс контейнера перед открытием
       if (quillEditor) {
         quillEditor = null;
       }
+      container.innerHTML = ''; // Очистить DOM контейнер от предыдущих экземпляров
 
-      // Сначала показываем модалку
-      document.getElementById('modalOverlay').dataset.editId = id;
-      document.getElementById('modalOverlay').classList.add('active');
-
-      // Жесткий обработчик смены типа
+      // Обработка изменения типа
       document.getElementById('editType').onchange = function() {
         const t = this.value;
         if (t === 'text') {
-          document.getElementById('editor-field').style.display = 'block';
-          // Полная перезагрузка редактора
-          if(quillEditor) quillEditor = null;
-          setTimeout(initQuillWithContent, 100);
+          editorField.style.display = 'block';
+          initQuill();
         } else {
-          document.getElementById('editor-field').style.display = 'none';
+          editorField.style.display = 'none';
         }
       };
 
-      // Если сразу выбран текст, инициализируем с задержкой, чтобы DOM успел отрисоваться
+      // Инициализация по умолчанию (без setTimeout)
+      const type = document.getElementById('editType').value;
       if (type === 'text') {
         editorField.style.display = 'block';
-        setTimeout(initQuillWithContent, 200);
+        initQuill();
+      } else {
+        editorField.style.display = 'none';
       }
+
+      document.getElementById('modalOverlay').classList.add('active');
 
       document.getElementById('modalClose').onclick = closeModal;
       document.getElementById('modalCancel').onclick = closeModal;
@@ -781,49 +781,46 @@
         saveModalEdit(document.getElementById('modalOverlay').dataset.editId);
       };
     }
-
-    function initQuillWithContent() {
-      const container = document.getElementById('editor-container');
-      if (!container) return;
-
-      try {
-        Quill.register('modules/table', QuillTable);
-        quillEditor = new Quill('#editor-container', {
-          modules: {
-            table: true,
-            toolbar: [
-              [{ header: [1, 2, 3, false] }],
-              ['bold', 'italic', 'underline', 'strike'],
-              [{ list: 'ordered'}, { list: 'bullet' }],
-              ['link', 'image'],
-              [{ 'table': true }],
-              ['clean']
-            ]
-          },
-          theme: 'snow'
-        });
-
-        const node = findNode(data.sections, document.getElementById('modalOverlay').dataset.editId);
-        if (node && node.content) {
-          try {
-            const delta = quillEditor.clipboard.convert(node.content);
-            quillEditor.setContents(delta);
-          } catch (e) {
-            quillEditor.setText('Ошибка загрузки данных. Вы можете вставить текст заново.');
-          }
-        } else {
-          quillEditor.setText('Введите ваши инструкции, создайте таблицу или вставьте изображение...');
-        }
-      } catch (e) {
-        console.error('Ошибка создания Quill:', e);
-      }
+    
+    function initQuill() {
+       const container = document.getElementById('editor-container');
+       if (!container) return;
+       
+       // Убеждаемся, что не накладываем Quill поверх старого
+       container.innerHTML = ''; 
+       
+       try {
+           Quill.register('modules/table', QuillTable);
+           quillEditor = new Quill(container, {
+               modules: {
+                   table: true,
+                   toolbar: [
+                       [{ header: [1, 2, 3, false] }],
+                       ['bold', 'italic', 'underline', 'strike'],
+                       [{ list: 'ordered'}, { list: 'bullet' }],
+                       ['link', 'image'],
+                       [{ 'table': true }],
+                       ['clean']
+                   ]
+               },
+               theme: 'snow'
+           });
+           
+           const node = findNode(data.sections, document.getElementById('modalOverlay').dataset.editId);
+           if (node && node.content) {
+               quillEditor.clipboard.dangerouslyPasteHTML(node.content);
+           } else {
+               quillEditor.setText('Введите ваши инструкции, создайте таблицу или вставьте изображение...');
+           }
+       } catch (e) {
+           console.error("Ошибка инициализации Quill:", e);
+           container.innerHTML = `<p style="color:#e74c3c;padding:10px;">Ошибка загрузки редактора. Проверьте консоль браузера (F12).</p>`;
+       }
     }
 
     function closeModal() {
       document.getElementById('modalOverlay').classList.remove('active');
-      if (quillEditor) {
-        quillEditor = null;
-      }
+      if (quillEditor) { quillEditor = null; }
     }
 
     function saveModalEdit(id) {
@@ -832,14 +829,9 @@
       if (!title) { alert('Введите название раздела.'); return; }
       const type = document.getElementById('editType').value;
 
-      let contentToSave = '';
-      if (type === 'text') {
-        contentToSave = quillEditor ? quillEditor.root.innerHTML : '';
-      }
-
       if (id === 'new') {
         const newNode = { id: generateId(), title: title, type: type };
-        if (type === 'text') newNode.content = contentToSave;
+        if (type === 'text') newNode.content = quillEditor ? quillEditor.root.innerHTML : '';
         else if (type === 'checklist') newNode.items = [{ time: '09:00', task: 'Пример задачи' }];
         else if (type === 'group') newNode.children = [];
         data.sections.push(newNode);
@@ -853,11 +845,11 @@
         if (node.type !== type) {
           delete node.items; delete node.content; delete node.children;
           node.type = type;
-          if (type === 'text') node.content = contentToSave;
+          if (type === 'text') node.content = quillEditor ? quillEditor.root.innerHTML : '';
           else if (type === 'checklist') node.items = [{ time: '09:00', task: 'Пример задачи' }];
           else if (type === 'group') node.children = [];
-        } else if (type === 'text') {
-          node.content = contentToSave;
+        } else if (type === 'text' && quillEditor) {
+          node.content = quillEditor.root.innerHTML;
         }
         saveData(); renderTree(); renderContent(node.id);
       }
