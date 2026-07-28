@@ -321,7 +321,7 @@
 
   <script>
     // ============================================================
-    // 1. FIREBASE
+    // 1. FIREBASE 
     // ============================================================
     const firebaseConfig = {
       apiKey: "AIzaSyDdm0kaIesCu4CBennxPVoPhXwyAyAiwIg",
@@ -867,7 +867,7 @@
     }
 
     // ============================================================
-    // 7. ИНИЦИАЛИЗАЦИЯ РЕДАКТОРА QUIL (ИЗМЕНЕНО: Postimages.org)
+    // 7. ИНИЦИАЛИЗАЦИЯ РЕДАКТОРА QUIL (ИЗМЕНЕНО: Загрузка через Base64)
     // ============================================================
     let quillEditor = null;
 
@@ -957,7 +957,7 @@
            });
 
            // =========================================================================
-           // ИЗМЕНЕНО: Постimages API (надежный, бесплатный, не требует ключа)
+           // ИЗМЕНЕНО: Прямая загрузка в Base64 (работает без внешних серверов)
            // =========================================================================
            function resizeAndCompressImage(file, maxWidth, maxHeight, quality) {
                return new Promise((resolve, reject) => {
@@ -987,8 +987,11 @@
                            ctx.drawImage(img, 0, 0, width, height);
                            
                            canvas.toBlob((blob) => {
-                               if (blob) resolve(blob);
-                               else reject(new Error('Не удалось сжать изображение'));
+                               const readerBlob = new FileReader();
+                               readerBlob.onloadend = () => {
+                                   resolve(readerBlob.result);
+                               };
+                               readerBlob.readAsDataURL(blob);
                            }, 'image/jpeg', quality);
                        };
                        img.onerror = reject;
@@ -1010,37 +1013,22 @@
                    if (!file) return;
 
                    const range = quillEditor.getSelection(true);
-                   const tempText = '⏳ Загрузка и сжатие изображения (Postimages)...';
+                   const tempText = '⏳ Сжатие изображения (Base64)...';
                    const startIdx = range.index;
                    quillEditor.insertText(startIdx, tempText);
 
                    try {
-                       // 1. Сжимаем изображение (1200px, качество 0.8)
-                       const compressedBlob = await resizeAndCompressImage(file, 1200, 1200, 0.8);
+                       // 1. Сжимаем и получаем DataURL (строка Base64)
+                       const base64String = await resizeAndCompressImage(file, 1200, 1200, 0.8);
                        
-                       const formData = new FormData();
-                       formData.append('file', compressedBlob, file.name);
-
-                       // 2. Отправляем на Postimages
-                       const response = await fetch('https://postimg.cc/api/upload', {
-                           method: 'POST',
-                           body: formData
-                       });
-                       
-                       const data = await response.json();
-
-                       if (data.url) {
-                           quillEditor.deleteText(startIdx, tempText.length);
-                           quillEditor.insertEmbed(startIdx, 'image', data.url);
-                       } else {
-                           quillEditor.deleteText(startIdx, tempText.length);
-                           quillEditor.insertText(startIdx, `❌ Ошибка загрузки: ${data.message || 'Неизвестная ошибка'}`);
-                       }
+                       // Удаляем текст загрузки и вставляем Base64
+                       quillEditor.deleteText(startIdx, tempText.length);
+                       quillEditor.insertEmbed(startIdx, 'image', base64String);
                    } catch (error) {
-                       console.error("Ошибка загрузки картинки:", error);
+                       console.error("Ошибка обработки картинки:", error);
                        if (quillEditor) {
                            quillEditor.deleteText(startIdx, tempText.length);
-                           quillEditor.insertText(startIdx, `❌ Ошибка соединения с Postimages.`);
+                           quillEditor.insertText(startIdx, `❌ Ошибка сжатия картинки. Попробуйте другое фото.`);
                        }
                    }
                };
