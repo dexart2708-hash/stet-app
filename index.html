@@ -446,6 +446,7 @@
           <select id="editType">
             <option value="text">Текст / Инструкция (с таблицами и фото)</option>
             <option value="checklist">Чек-лист (список задач)</option>
+            <option value="group">Группа (для вложенных папок)</option>
           </select>
         </div>
         <div class="field" id="editor-field">
@@ -899,12 +900,24 @@
     // ============================================================
     // 6. ФУНКЦИЯ СОРТИРОВКИ И РЕДАКТИРОВАНИЕ ЧЕК-ЛИСТА
     // ============================================================
-    // Функция сортировки пунктов по времени
+    // Функция сортировки пунктов по времени (с умным парсингом строк до 14:00 и т.д.)
     function sortChecklistByTime(id) {
         const node = findNode(data.sections, id);
         if (!node || node.type !== 'checklist' || !node.items) return;
 
-        node.items.sort((a, b) => a.time.localeCompare(b.time));
+        node.items.sort((a, b) => {
+            // 1. Извлекаем первое вхождение времени в формате ЧЧ:ММ из строки
+            const timeA = (a.time || '').match(/(\d{1,2}:\d{2})/);
+            const timeB = (b.time || '').match(/(\d{1,2}:\d{2})/);
+            
+            // 2. Если время найдено, берем его. Если нет — ставим '99:99' (они уйдут в самый конец)
+            const valA = timeA ? timeA[1] : '99:99';
+            const valB = timeB ? timeB[1] : '99:99';
+            
+            // 3. Сравниваем уже чистые временные метки
+            return valA.localeCompare(valB);
+        });
+        
         saveData();
         renderContent(id);
     }
@@ -1270,6 +1283,8 @@
         const newNode = { id: generateId(), title: title, type: type };
         if (type === 'text') newNode.content = contentToSave;
         else if (type === 'checklist') newNode.items = [{ time: '09:00', task: 'Пример задачи', checked: false }];
+        else if (type === 'group') newNode.children = [];
+
         let parent = null;
         if (selectedId) {
           const sel = findNode(data.sections, selectedId);
@@ -1289,10 +1304,11 @@
       if (node) {
         node.title = title;
         if (node.type !== type) {
-          delete node.items; delete node.content;
+          delete node.items; delete node.content; delete node.children;
           node.type = type;
           if (type === 'text') node.content = contentToSave;
           else if (type === 'checklist') node.items = [{ time: '09:00', task: 'Пример задачи', checked: false }];
+          else if (type === 'group') node.children = [];
         } else if (type === 'text') {
           node.content = contentToSave;
         }
