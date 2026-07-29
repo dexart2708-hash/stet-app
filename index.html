@@ -198,7 +198,8 @@
     .progress-wrap { margin-bottom: 16px; padding-bottom: 8px; display: flex; flex-direction: column; gap: 6px; }
     .progress-text { font-size: 0.8rem; font-weight: 500; color: var(--text-secondary); letter-spacing: 0.3px; }
     .progress-bar { width: 100%; height: 5px; background: var(--border); border-radius: 10px; overflow: hidden; }
-    .progress-fill { height: 100%; background-color: var(--accent); border-radius: 10px; transition: width 0.3s ease; }
+    .progress-track { width: 100%; height: 8px; background: var(--bg-panel); border-radius: 50px; overflow: hidden; }
+    .progress-fill { height: 100%; background: #10b981; border-radius: 50px; transition: width 0.3s ease; }
 
     .checklist { display: flex; flex-direction: column; gap: 6px; margin-bottom: 1rem; }
     .checklist-item { display: flex; align-items: stretch; border-radius: var(--radius-sm); transition: var(--transition); border: 1px solid var(--border); overflow: hidden; background: var(--bg-main); box-shadow: var(--shadow); }
@@ -717,24 +718,31 @@
           html += renderEditableChecklist(node);
         } else {
           const items = node.items || [];
-          const total = items.length;
-          const done = items.filter(i => i.checked).length;
-          const percent = total > 0 ? (done / total) * 100 : 0;
+            const total = items.length;
+            // Подсчитываем выполненные задачи
+            const done = items.filter(i => i.checked).length;
+            const percent = total > 0 ? (done / total) * 100 : 0;
 
-          // Цветной прогресс-бар
-          html += `<div class="progress-wrap">
-                     <div class="progress-text">${done} из ${total} выполнено</div>
-                     <div class="progress-bar"><div class="progress-fill" style="width: ${percent}%;"></div></div>
-                   </div>`;
+            // Прогресс-бар
+            html += `<div class="progress-wrapper">
+                <div class="progress-text">${done} из ${total} выполнено (${Math.round(percent)}%)</div>
+                <div class="progress-track">
+                    <div class="progress-fill" style="width: ${percent}%;"></div>
+                </div>
+            </div>`;
 
-          html += `<div class="checklist">`;
-          for (let i = 0; i < items.length; i++) {
-            const item = items[i];
-            html += `<div class="checklist-item">`;
-            html += `<div class="time">${escapeHtml(item.time)}</div>`;
-            html += `<div class="task"><span class="checkbox ${item.checked ? 'checked' : ''}" data-index="${i}"></span><span class="text">${escapeHtml(item.task)}</span></div>`;
-            html += `</div>`;
-          }
+            html += `<div class="checklist">`;
+            for (let i = 0; i < items.length; i++) {
+                const item = items[i];
+                html += `<div class="checklist-item">`;
+                html += `<div class="time">${escapeHtml(item.time)}</div>`;
+                html += `<div class="task">`;
+                // Сохранили ваш data-index и логику checked
+                html += `<span class="checkbox ${item.checked ? 'checked' : ''}" data-index="${i}"></span>`;
+                html += `<span class="text">${escapeHtml(item.task)}</span>`;
+                html += `</div>`;
+                html += `</div>`;
+            }
           html += `</div>`;
         }
       } else if (node.type === 'text') { 
