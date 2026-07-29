@@ -213,11 +213,28 @@
     .children.open { counter-reset: item; }
     .children.open .node-label:not(.group-folder) { counter-increment: item; }
     .children.open .node-label:not(.group-folder)::before {
-      content: counter(item) ". ";
-      color: #888;
-      margin-right: 6px;
-      font-size: 0.8rem;
-      font-weight: 500;
+      content: counter(item);
+      display: inline-block;
+      background: #ffffff;
+      color: #1a1a1a;
+      border-radius: 4px;
+      font-size: 0.7rem;
+      font-weight: 600;
+      min-width: 22px;
+      height: 22px;
+      line-height: 22px;
+      text-align: center;
+      margin-right: 10px;
+      padding: 0 4px;
+      flex-shrink: 0;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+    }
+
+    /* При выделении элемента меняем цвет плашки на оранжевый (акцент) */
+    .children.open .node-label:not(.group-folder).active::before {
+      background: var(--accent);
+      color: #fff;
+      box-shadow: none;
     }
 
     .tree-node .children { padding-left: 0; overflow: hidden; max-height: 0; transition: max-height 0.35s ease, opacity 0.25s ease; opacity: 0; }
