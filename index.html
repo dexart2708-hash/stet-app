@@ -18,12 +18,12 @@
 
   <style>
     :root {
-      --primary: #2b2b2b;       /* Темно-коричневый/угольный */
+      --primary: #2b2b2b;       
       --primary-light: #3e3e3e;
       --primary-dark: #1a1a1a;
-      --accent: #d67b28;        /* Оранжевый акцент (как кнопка) */
+      --accent: #d67b28;        
       --accent-hover: #c16e22;
-      --sidebar-bg: #f4f2ea;    /* Светло-бежевый фон сайдбара */
+      --sidebar-bg: #f4f2ea;    
       --sidebar-hover: #e8e5dd;
       --sidebar-active: #2b2b2b;
       --text-primary: #1a1a1a;
@@ -32,7 +32,7 @@
       --bg-main: #fdfdfd;
       --bg-panel: #f9f8f3;
       --border: #e6e4db;
-      --radius: 8px;            /* Более аккуратные скругления */
+      --radius: 8px;            
       --radius-sm: 6px;
       --transition: 0.2s ease;
       --font: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -67,7 +67,6 @@
       flex-shrink: 0; z-index: 10; flex-wrap: wrap; gap: 8px;
     }
     
-    /* ===== ОБНОВЛЕННАЯ ШАПКА (ЛОГОТИП И ТЕКСТ) ===== */
     .app-header .logo { 
       display: flex; 
       align-items: center; 
@@ -375,11 +374,10 @@
 </head>
 <body>
   <header class="app-header">
-    <!-- ===== ОБНОВЛЕННЫЙ БЛОК ЛОГОТИПА ===== -->
     <div class="logo">
       <img src="./favicon.png" alt="Логотип" />
       <div class="logo-text">
-        <span class="main-title">Чек лист. Управляющий отелем</span>
+        <span class="main-title">Чек лист. Управляющий отелем.</span>
         <span class="sub-title">СЕТЬ ОТЕЛЕЙ НОМЕРА</span>
       </div>
     </div>
@@ -807,7 +805,10 @@
       if (!isAdmin && editingId === node.id) editingId = null;
 
       let html = `<div class="section-header"><div class="title-group"><h2>${escapeHtml(node.title)}</h2>`;
-      html += `<span class="type-badge">${node.type === 'checklist' ? 'Чек-лист' : 'Текст'}</span>`;
+      // Убрали бейдж ТЕКСТ, оставили только для чек-листа
+      if (node.type === 'checklist') {
+          html += `<span class="type-badge">Чек-лист</span>`;
+      }
       html += `</div><div class="content-actions">`;
       
       if (node.type === 'checklist') {
@@ -816,6 +817,8 @@
           html += `<button class="danger-btn" id="cancelEditsBtn"><i class="fas fa-times"></i> Отмена</button>`;
         } else {
           if (isAdmin) html += `<button class="primary-btn" id="editSectionBtn"><i class="fas fa-pen"></i> Редактировать</button>`;
+          // ДОБАВИЛИ КНОПКУ СОРТИРОВКИ
+          if (isAdmin) html += `<button class="download-btn" id="sortChecklistBtn"><i class="fas fa-sort-amount-down"></i> Сортировать по времени</button>`;
         }
         html += `<button class="download-btn" id="printChecklistBtn"><i class="fas fa-file-pdf"></i> Экспорт / Печать (PDF)</button>`;
       } else {
@@ -873,6 +876,10 @@
       const printBtn = document.getElementById('printChecklistBtn');
       if (printBtn) printBtn.addEventListener('click', function() { window.print(); });
 
+      // ОБРАБОТЧИК СОРТИРОВКИ
+      const sortBtn = document.getElementById('sortChecklistBtn');
+      if (sortBtn) sortBtn.addEventListener('click', function() { sortChecklistByTime(node.id); });
+
       const editBtn = document.getElementById('editSectionBtn');
       if (editBtn) editBtn.addEventListener('click', function() { editingId = node.id; renderContent(node.id); });
       const saveEditsBtn = document.getElementById('saveEditsBtn');
@@ -890,8 +897,18 @@
     }
 
     // ============================================================
-    // 6. РЕДАКТИРОВАНИЕ ЧЕК-ЛИСТА
+    // 6. ФУНКЦИЯ СОРТИРОВКИ И РЕДАКТИРОВАНИЕ ЧЕК-ЛИСТА
     // ============================================================
+    // Функция сортировки пунктов по времени
+    function sortChecklistByTime(id) {
+        const node = findNode(data.sections, id);
+        if (!node || node.type !== 'checklist' || !node.items) return;
+
+        node.items.sort((a, b) => a.time.localeCompare(b.time));
+        saveData();
+        renderContent(id);
+    }
+
     function renderEditableChecklist(node) {
       let html = `<div class="edit-checklist" id="editableChecklistContainer">`;
       const items = node.items || [];
@@ -1135,8 +1152,11 @@
       const toolbarContainer = container.parentElement.querySelector('.ql-toolbar');
       if (toolbarContainer) { toolbarContainer.remove(); }
 
+      // ИСПРАВЛЕНИЕ: Меняем click на mousedown, чтобы окно не закрывалось при выделении текста за его пределами
       overlay.onmousedown = null;
-      overlay.addEventListener('mousedown', function(e) { if (e.target === this) closeModal(); });
+      overlay.addEventListener('mousedown', function(e) {
+          if (e.target === this) closeModal();
+      });
       modalEl.onmousedown = null;
       modalEl.addEventListener('mousedown', function(e) { e.stopPropagation(); });
 
