@@ -271,15 +271,22 @@
     .modal-footer button.save:hover { background: var(--accent-hover); }
     
     /* ===== СТИЛИ ДЛЯ НОВЫХ ИНСТРУМЕНТОВ QUIL ===== */
-    /* Выпадающий список шрифтов в редакторе */
-    .ql-snow .ql-picker.ql-font .ql-picker-label::before,
-    .ql-snow .ql-picker.ql-font .ql-picker-item::before {
-      content: attr(data-label);
-    }
+    /* Исправленный выпадающий список шрифтов (жесткая привязка) */
+    .ql-snow .ql-picker.ql-font .ql-picker-label[data-value="inter"]::before { content: "Inter"; }
+    .ql-snow .ql-picker.ql-font .ql-picker-item[data-value="inter"]::before { content: "Inter"; }
+    .ql-snow .ql-picker.ql-font .ql-picker-label[data-value="arial"]::before { content: "Arial"; }
+    .ql-snow .ql-picker.ql-font .ql-picker-item[data-value="arial"]::before { content: "Arial"; }
+    .ql-snow .ql-picker.ql-font .ql-picker-label[data-value="georgia"]::before { content: "Georgia"; }
+    .ql-snow .ql-picker.ql-font .ql-picker-item[data-value="georgia"]::before { content: "Georgia"; }
+    .ql-snow .ql-picker.ql-font .ql-picker-label[data-value="times-new-roman"]::before { content: "Times New Roman"; }
+    .ql-snow .ql-picker.ql-font .ql-picker-item[data-value="times-new-roman"]::before { content: "Times New Roman"; }
+
     .ql-font-inter { font-family: 'Inter', sans-serif; }
     .ql-font-arial { font-family: 'Arial', sans-serif; }
     .ql-font-georgia { font-family: 'Georgia', serif; }
     .ql-font-times-new-roman { font-family: 'Times New Roman', serif; }
+
+    /* Размеры шрифта */
     .ql-snow .ql-picker.ql-size .ql-picker-label::before,
     .ql-snow .ql-picker.ql-size .ql-picker-item::before {
       content: attr(data-label);
