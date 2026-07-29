@@ -200,14 +200,8 @@
       justify-content: space-between;
       align-items: center;
     }
-    .node-label.group-folder .icon,
-    .node-label.group-folder .toggle,
-    .node-label.group-folder .node-actions {
-      display: none;
-    }
-    .node-label.group-folder.active {
-      background: #1a1a1a;
-    }
+    /* ИСПРАВЛЕНИЕ: Убираем только иконку папки, оставляем стрелочку и кнопки админа */
+    .node-label.group-folder .icon { display: none; }
     
     .node-label:not(.group-folder) {
       display: flex; align-items: center; padding: 6px 12px; border-radius: var(--radius-sm); cursor: pointer; transition: var(--transition); gap: 6px; position: relative; font-size: 0.85rem; color: var(--text-secondary);
@@ -510,9 +504,6 @@
       sections: [{ id: 's1', title: 'Общая инструкция', type: 'text', content: '<h3>Добро пожаловать!</h3><p>Здесь вы можете создавать инструкции и чек-листы.</p>' }]
     };
 
-    // ============================================================
-    // БЕЗОПАСНАЯ ГЕНЕРАЦИЯ ID
-    // ============================================================
     function generateId() { 
         return 'n' + Date.now() + Math.random().toString(36).substr(2, 6); 
     }
@@ -591,17 +582,6 @@
       }
     }
 
-    // ============================================================
-    // 2. РАБОТА С ЛОКАЛЬНЫМ ХРАНИЛИЩЕМ
-    // ============================================================
-    function loadFromLocalStorage() {
-      const stored = localStorage.getItem('hotelChecklistData');
-      if (stored) {
-        try { return JSON.parse(stored); } catch (e) {}
-      }
-      return null;
-    }
-
     function saveToLocalStorage(dataObj) {
       localStorage.setItem('hotelChecklistData', JSON.stringify(dataObj));
     }
@@ -621,7 +601,6 @@
       const query = searchQuery.trim().toLowerCase();
       const filtered = query ? filterTree(data.sections, query) : data.sections;
 
-      // Очистка "мертвых" ссылок
       expanded.forEach((val, key) => {
           if (!findNode(data.sections, key)) expanded.delete(key);
       });
@@ -699,7 +678,6 @@
       if (expanded.has(node.id)) {
         isExpanded = expanded.get(node.id);
       } else {
-        // Раскрываем родителя активного элемента
         isExpanded = (isActive && isGroup) || (selectedId && isAncestor(node, selectedId));
       }
       
@@ -1289,7 +1267,6 @@
         else if (type === 'checklist') newNode.items = [{ time: '09:00', task: 'Пример задачи', checked: false }];
         else if (type === 'group') newNode.children = [];
 
-        // ========== ИСПРАВЛЕНИЕ: ЧЕТКОЕ РАЗДЕЛЕНИЕ ЛОГИКИ ==========
         if (type === 'group') {
             // Папки всегда создаются в корне, отдельно от всех
             data.sections.push(newNode);
@@ -1311,7 +1288,6 @@
                 data.sections.push(newNode);
             }
         }
-        // ============================================================
 
         saveData(); renderTree(); selectNode(newNode.id);
         closeModal(); return;
