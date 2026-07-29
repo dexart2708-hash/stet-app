@@ -38,13 +38,14 @@
       --font: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       --header-bg: #2b2b2b;
       --header-text: #ffffff;
+      --header-gradient: linear-gradient(145deg, #1f1f1f 0%, #2b2b2b 100%);
       --shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
     }
-    [data-theme="forest"] { --primary: #1e6b3b; --primary-light: #2a8a4e; --primary-dark: #124d2a; --accent: #e48c00; --accent-hover: #c97a00; --header-bg: #1e6b3b; }
-    [data-theme="sunset"] { --primary: #b85a2a; --primary-light: #d4703a; --primary-dark: #8f451f; --accent: #e48c00; --accent-hover: #c97a00; --header-bg: #b85a2a; }
-    [data-theme="navy"] { --primary: #1a2a4a; --primary-light: #2a406a; --primary-dark: #0e1a30; --accent: #e48c00; --accent-hover: #c97a00; --header-bg: #1a2a4a; }
-    [data-theme="rose"] { --primary: #9e2b5e; --primary-light: #c03a76; --primary-dark: #731f44; --accent: #e48c00; --accent-hover: #c97a00; --header-bg: #9e2b5e; }
-    [data-theme="slate"] { --primary: #475569; --primary-light: #64748b; --primary-dark: #334155; --accent: #e48c00; --accent-hover: #c97a00; --header-bg: #475569; }
+    [data-theme="forest"] { --primary: #1e6b3b; --primary-light: #2a8a4e; --primary-dark: #124d2a; --accent: #e48c00; --accent-hover: #c97a00; --header-bg: #1e6b3b; --header-gradient: linear-gradient(145deg, #14502c 0%, #1e6b3b 100%); }
+    [data-theme="sunset"] { --primary: #b85a2a; --primary-light: #d4703a; --primary-dark: #8f451f; --accent: #e48c00; --accent-hover: #c97a00; --header-bg: #b85a2a; --header-gradient: linear-gradient(145deg, #9f4e24 0%, #b85a2a 100%); }
+    [data-theme="navy"] { --primary: #1a2a4a; --primary-light: #2a406a; --primary-dark: #0e1a30; --accent: #e48c00; --accent-hover: #c97a00; --header-bg: #1a2a4a; --header-gradient: linear-gradient(145deg, #111e36 0%, #1a2a4a 100%); }
+    [data-theme="rose"] { --primary: #9e2b5e; --primary-light: #c03a76; --primary-dark: #731f44; --accent: #e48c00; --accent-hover: #c97a00; --header-bg: #9e2b5e; --header-gradient: linear-gradient(145deg, #85264f 0%, #9e2b5e 100%); }
+    [data-theme="slate"] { --primary: #475569; --primary-light: #64748b; --primary-dark: #334155; --accent: #e48c00; --accent-hover: #c97a00; --header-bg: #475569; --header-gradient: linear-gradient(145deg, #3a4655 0%, #475569 100%); }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
@@ -62,7 +63,9 @@
 
     .app-header {
       display: flex; align-items: center; justify-content: space-between;
-      padding: 8px 16px; background: var(--header-bg); color: var(--header-text);
+      padding: 8px 16px;
+      background: var(--header-gradient); /* МЯГКИЙ ГРАДИЕНТ В ШАПКЕ */
+      color: var(--header-text);
       border-bottom: none;
       flex-shrink: 0; z-index: 10; flex-wrap: wrap; gap: 8px;
     }
@@ -228,17 +231,27 @@
     .tree-node .children.open { grid-template-rows: 1fr; opacity: 1; }
     .tree-node .children > .tree-node { min-height: 0; }
     
-    .empty-tree { padding: 20px 16px; text-align: center; color: var(--text-light); font-size: 0.85rem; }
+    /* ===== КРАСИВЫЕ SVG ИЛЛЮСТРАЦИИ ДЛЯ ПУСТЫХ СОСТОЯНИЙ ===== */
+    .empty-state, .empty-tree {
+      display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%;
+      padding: 20px; text-align: center; color: var(--text-secondary);
+    }
+    .empty-state svg, .empty-tree svg {
+      margin-bottom: 16px; max-width: 80%; height: auto;
+    }
+    .empty-state h2, .empty-tree h3 {
+      font-weight: 500; font-size: 1.2rem; margin-bottom: 6px; color: var(--text-primary);
+    }
+    .empty-state p, .empty-tree p {
+      max-width: 300px; font-size: 0.9rem; line-height: 1.4;
+    }
 
     .node-label.dragging { opacity: 0.4; }
     .node-label.drop-target { background-color: var(--accent); color: #fff; border-radius: var(--radius-sm); }
     .node-label.drop-target .icon, .node-label.drop-target .title, .node-label.drop-target .toggle { color: #fff; }
 
     .content-panel { flex: 1; overflow-y: auto; padding: 20px 24px 30px; background: var(--bg-main); display: flex; flex-direction: column; }
-    .content-panel .empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; color: var(--text-light); text-align: center; }
-    .content-panel .empty-state i { font-size: 3rem; margin-bottom: 16px; opacity: 0.3; }
-
-    /* ===== ХЛЕБНЫЕ КРОШКИ ===== */
+    
     .breadcrumbs {
       margin-bottom: 12px;
       font-size: 0.75rem;
@@ -364,46 +377,6 @@
       .modal-overlay { display: none !important; }
     }
 
-    /* ===== СТИЛИ ДЛЯ TOAST (ВСПЛЫВАЮЩИЕ УВЕДОМЛЕНИЯ) ===== */
-    #toast-container {
-      position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
-      z-index: 9999; display: flex; flex-direction: column; align-items: center;
-      gap: 8px; pointer-events: none;
-    }
-    .toast-msg {
-      background: #333; color: #fff; padding: 10px 20px; border-radius: 6px;
-      font-size: 0.9rem; box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-      opacity: 0; transform: translateY(20px); transition: all 0.3s ease;
-      pointer-events: auto; max-width: 90vw; text-align: center;
-    }
-    .toast-msg.show { opacity: 1; transform: translateY(0); }
-    .toast-msg.success { background: #10b981; }
-    .toast-msg.error { background: #e74c3c; }
-
-    /* ===== СТИЛИ ДЛЯ МОДАЛЬНОГО ОКНА ПОДТВЕРЖДЕНИЯ ===== */
-    #confirmOverlay {
-      position: fixed; inset: 0; background: rgba(0,0,0,0.5); backdrop-filter: blur(4px);
-      display: none; align-items: center; justify-content: center; z-index: 1000; padding: 10px;
-    }
-    #confirmOverlay.active { display: flex; }
-    #confirmOverlay .modal {
-      background: var(--bg-main); border-radius: var(--radius); max-width: 440px; width: 100%;
-      box-shadow: 0 20px 60px rgba(0,0,0,0.3); overflow: hidden; border-top: 4px solid var(--accent);
-      animation: scaleIn 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
-      padding: 20px 24px;
-    }
-    #confirmOverlay .modal h3 { font-size: 1rem; font-weight: 600; color: var(--text-primary); margin-bottom: 8px; }
-    #confirmOverlay .modal p { font-size: 0.9rem; color: var(--text-secondary); line-height: 1.5; margin-bottom: 20px; }
-    #confirmOverlay .modal .actions { display: flex; justify-content: flex-end; gap: 8px; }
-    #confirmOverlay .modal .actions button {
-      padding: 6px 20px; border-radius: var(--radius-sm); border: none; cursor: pointer;
-      font-size: 0.85rem; font-weight: 500; min-height: 36px; transition: all 0.2s ease;
-    }
-    #confirmOverlay .modal .actions .cancel-btn { background: var(--sidebar-bg); color: var(--text-secondary); }
-    #confirmOverlay .modal .actions .cancel-btn:hover { background: var(--sidebar-hover); }
-    #confirmOverlay .modal .actions .danger-btn { background: #e74c3c; color: #fff; }
-    #confirmOverlay .modal .actions .danger-btn:hover { background: #c0392b; }
-
     .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); display: none; align-items: center; justify-content: center; z-index: 1000; padding: 10px; }
     .modal-overlay.active { display: flex; }
     .modal { background: var(--bg-main); border-radius: var(--radius); max-width: 780px; width: 100%; max-height: 95vh; display: flex; flex-direction: column; box-shadow: 0 20px 60px rgba(0,0,0,0.3); overflow: hidden; border-top: 3px solid var(--accent); animation: scaleIn 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
@@ -446,6 +419,45 @@
     .ql-snow .ql-picker.ql-size .ql-picker-item[data-value="huge"]::before { content: "Огромный"; }
     .ql-snow .ql-picker.ql-size .ql-picker-item[data-value="false"]::before { content: "Обычный"; }
     .ql-snow .ql-picker.ql-size .ql-picker-label::before { content: "Размер"; }
+
+    /* ===== ДОБАВЛЯЕМ МОДАЛЬНОЕ ОКНО ПОДТВЕРЖДЕНИЯ И TOAST ===== */
+    #confirmOverlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.5); backdrop-filter: blur(4px);
+      display: none; align-items: center; justify-content: center; z-index: 1000; padding: 10px;
+    }
+    #confirmOverlay.active { display: flex; }
+    #confirmOverlay .modal {
+      background: var(--bg-main); border-radius: var(--radius); max-width: 440px; width: 100%;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3); overflow: hidden; border-top: 4px solid var(--accent);
+      animation: scaleIn 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+      padding: 20px 24px;
+    }
+    #confirmOverlay .modal h3 { font-size: 1rem; font-weight: 600; color: var(--text-primary); margin-bottom: 8px; }
+    #confirmOverlay .modal p { font-size: 0.9rem; color: var(--text-secondary); line-height: 1.5; margin-bottom: 20px; }
+    #confirmOverlay .modal .actions { display: flex; justify-content: flex-end; gap: 8px; }
+    #confirmOverlay .modal .actions button {
+      padding: 6px 20px; border-radius: var(--radius-sm); border: none; cursor: pointer;
+      font-size: 0.85rem; font-weight: 500; min-height: 36px; transition: all 0.2s ease;
+    }
+    #confirmOverlay .modal .actions .cancel-btn { background: var(--sidebar-bg); color: var(--text-secondary); }
+    #confirmOverlay .modal .actions .cancel-btn:hover { background: var(--sidebar-hover); }
+    #confirmOverlay .modal .actions .danger-btn { background: #e74c3c; color: #fff; }
+    #confirmOverlay .modal .actions .danger-btn:hover { background: #c0392b; }
+
+    #toast-container {
+      position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+      z-index: 9999; display: flex; flex-direction: column; align-items: center;
+      gap: 8px; pointer-events: none;
+    }
+    .toast-msg {
+      background: #333; color: #fff; padding: 10px 20px; border-radius: 6px;
+      font-size: 0.9rem; box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      opacity: 0; transform: translateY(20px); transition: all 0.3s ease;
+      pointer-events: auto; max-width: 90vw; text-align: center;
+    }
+    .toast-msg.show { opacity: 1; transform: translateY(0); }
+    .toast-msg.success { background: #10b981; }
+    .toast-msg.error { background: #e74c3c; }
   </style>
 </head>
 <body>
@@ -563,7 +575,6 @@
         toast.textContent = message;
         container.appendChild(toast);
 
-        // Небольшая задержка для срабатывания CSS-перехода
         requestAnimationFrame(() => {
             toast.classList.add('show');
         });
@@ -601,7 +612,6 @@
             okBtn.addEventListener('click', onOk);
             cancelBtn.addEventListener('click', onCancel);
             
-            // Закрытие по клику на фон
             overlay.addEventListener('click', function(e) {
                 if (e.target === this) closeHandler(false);
             });
@@ -774,7 +784,17 @@
       });
 
       if (!filtered || filtered.length === 0) {
-        container.innerHTML = `<div class="empty-tree"><i class="fas fa-list"></i><p>Нет разделов.</p></div>`;
+        container.innerHTML = `
+          <div class="empty-tree">
+            <svg width="80" height="80" viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg" style="margin-bottom: 12px;">
+              <path d="M40 20H15C11.6863 20 9 22.6863 9 26V60C9 63.3137 11.6863 66 15 66H65C68.3137 66 71 63.3137 71 60V32C71 28.6863 68.3137 26 65 26H45L40 20Z" fill="#E8E5DD"/>
+              <path d="M15 32H65M15 42H65M15 52H50" stroke="#D67B28" stroke-width="4" stroke-linecap="round"/>
+              <circle cx="60" cy="52" r="6" fill="#D67B28"/>
+            </svg>
+            <h3>Нет разделов</h3>
+            <p>Нажмите <strong>«+ Добавить»</strong>, чтобы создать первую папку или инструкцию.</p>
+          </div>
+        `;
         return;
       }
       let html = '';
@@ -959,7 +979,20 @@
       const panel = document.getElementById('contentPanel');
       if (!panel) return;
       const node = findNode(data.sections, id);
-      if (!node) { panel.innerHTML = `<div class="empty-state"><i class="fas fa-folder-open"></i><h2>Выберите раздел</h2></div>`; return; }
+      if (!node) { 
+          panel.innerHTML = `
+            <div class="empty-state">
+              <svg width="120" height="120" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg" style="margin-bottom: 16px;">
+                <path d="M60 30H30C25.5817 30 22 33.5817 22 38V82C22 86.4183 25.5817 90 30 90H90C94.4183 90 98 86.4183 98 82V48C98 43.5817 94.4183 40 90 40H70L60 30Z" fill="#E8E5DD"/>
+                <path d="M30 48H90M30 58H90M30 68H70" stroke="#D67B28" stroke-width="6" stroke-linecap="round"/>
+                <circle cx="82" cy="68" r="8" fill="#D67B28"/>
+              </svg>
+              <h2>Выберите раздел</h2>
+              <p>Выберите раздел из списка слева, чтобы просмотреть его содержимое.</p>
+            </div>
+          `; 
+          return; 
+      }
 
       if (!isAdmin && editingId === node.id) editingId = null;
 
@@ -1047,10 +1080,8 @@
             node.items[idx].checked = !node.items[idx].checked;
             saveData();
 
-            // Мгновенно меняем визуал галочки
             this.classList.toggle('checked');
 
-            // Обновляем прогресс-бар на лету
             const total = node.items.length;
             const done = node.items.filter(i => i.checked).length;
             const percent = total > 0 ? Math.round((done / total) * 100) : 0;
