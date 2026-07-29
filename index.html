@@ -63,9 +63,7 @@
 
     .app-header {
       display: flex; align-items: center; justify-content: space-between;
-      padding: 8px 16px;
-      background: var(--header-gradient); /* МЯГКИЙ ГРАДИЕНТ В ШАПКЕ */
-      color: var(--header-text);
+      padding: 8px 16px; background: var(--header-gradient); color: var(--header-text);
       border-bottom: none;
       flex-shrink: 0; z-index: 10; flex-wrap: wrap; gap: 8px;
     }
@@ -231,7 +229,6 @@
     .tree-node .children.open { grid-template-rows: 1fr; opacity: 1; }
     .tree-node .children > .tree-node { min-height: 0; }
     
-    /* ===== КРАСИВЫЕ SVG ИЛЛЮСТРАЦИИ ДЛЯ ПУСТЫХ СОСТОЯНИЙ ===== */
     .empty-state, .empty-tree {
       display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%;
       padding: 20px; text-align: center; color: var(--text-secondary);
@@ -420,7 +417,6 @@
     .ql-snow .ql-picker.ql-size .ql-picker-item[data-value="false"]::before { content: "Обычный"; }
     .ql-snow .ql-picker.ql-size .ql-picker-label::before { content: "Размер"; }
 
-    /* ===== ДОБАВЛЯЕМ МОДАЛЬНОЕ ОКНО ПОДТВЕРЖДЕНИЯ И TOAST ===== */
     #confirmOverlay {
       position: fixed; inset: 0; background: rgba(0,0,0,0.5); backdrop-filter: blur(4px);
       display: none; align-items: center; justify-content: center; z-index: 1000; padding: 10px;
@@ -697,6 +693,21 @@
       }
       return false;
     }
+
+    // ===== ИСПРАВЛЕНИЕ: Добавлена недостающая функция getNodePath =====
+    function getNodePath(tree, id, path = []) {
+        for (const node of tree) {
+            if (node.id === id) {
+                return [...path, node];
+            }
+            if (node.children) {
+                const result = getNodePath(node.children, id, [...path, node]);
+                if (result) return result;
+            }
+        }
+        return null;
+    }
+    // =================================================================
 
     function updateSyncStatus(status, text) {
       const dot = document.getElementById('syncDot'), txt = document.getElementById('syncText');
