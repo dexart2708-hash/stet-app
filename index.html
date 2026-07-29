@@ -1135,8 +1135,8 @@
       const toolbarContainer = container.parentElement.querySelector('.ql-toolbar');
       if (toolbarContainer) { toolbarContainer.remove(); }
 
-      overlay.onclick = null;
-      overlay.addEventListener('click', function(e) { if (e.target === this) closeModal(); });
+      overlay.onmousedown = null;
+      overlay.addEventListener('mousedown', function(e) { if (e.target === this) closeModal(); });
       modalEl.onmousedown = null;
       modalEl.addEventListener('mousedown', function(e) { e.stopPropagation(); });
 
