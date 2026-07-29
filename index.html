@@ -1089,16 +1089,14 @@
        }
        
        try {
-           // 1. Регистрируем доступные шрифты
            var Font = Quill.import('attributors/class/font');
            Font.whitelist = ['inter', 'arial', 'georgia', 'times-new-roman'];
            Quill.register(Font, true);
 
-           // 2. Расширяем панель инструментов
            const toolbarConfig = [
-               [{ 'font': ['inter', 'arial', 'georgia', 'times-new-roman'] }], // Выбор шрифта
-               [{ 'size': ['small', false, 'large', 'huge'] }],                 // Размер текста
-               [{ 'color': [] }, { 'background': [] }],                        // Цвет текста и заливки
+               [{ 'font': ['inter', 'arial', 'georgia', 'times-new-roman'] }],
+               [{ 'size': ['small', false, 'large', 'huge'] }],
+               [{ 'color': [] }, { 'background': [] }],
                [{ header: [1, 2, 3, false] }],
                ['bold', 'italic', 'underline', 'strike'],
                [{ list: 'ordered'}, { list: 'bullet' }],
