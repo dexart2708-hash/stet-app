@@ -101,7 +101,6 @@
 
     .header-controls { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; flex: 1; justify-content: flex-end; }
     
-    /* ===== УЛУЧШЕННЫЙ И КОМПАКТНЫЙ ПОИСК ===== */
     .search-wrap { position: relative; display: flex; align-items: center; flex: 0 0 180px; min-width: 120px; }
     .search-wrap i { position: absolute; left: 10px; color: rgba(255,255,255,0.4); font-size: 0.8rem; }
     .search-wrap input { padding: 6px 10px 6px 32px; border: none; border-radius: 50px; background: rgba(255,255,255,0.12); font-size: 0.85rem; width: 100%; outline: none; color: #fff; min-height: 32px; transition: 0.2s; }
@@ -225,7 +224,6 @@
       box-shadow: none;
     }
 
-    /* ===== ИДЕАЛЬНО ПЛАВНОЕ РАСКРЫТИЕ ПАПОК (CSS GRID) ===== */
     .tree-node .children { display: grid; grid-template-rows: 0fr; transition: grid-template-rows 0.4s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease; opacity: 0; padding-left: 0; overflow: hidden; }
     .tree-node .children.open { grid-template-rows: 1fr; opacity: 1; }
     .tree-node .children > .tree-node { min-height: 0; }
@@ -239,6 +237,36 @@
     .content-panel { flex: 1; overflow-y: auto; padding: 20px 24px 30px; background: var(--bg-main); display: flex; flex-direction: column; }
     .content-panel .empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; color: var(--text-light); text-align: center; }
     .content-panel .empty-state i { font-size: 3rem; margin-bottom: 16px; opacity: 0.3; }
+
+    /* ===== ХЛЕБНЫЕ КРОШКИ ===== */
+    .breadcrumbs {
+      margin-bottom: 12px;
+      font-size: 0.75rem;
+      color: var(--text-light);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+    .breadcrumbs .crumb {
+      cursor: pointer;
+      transition: color 0.2s ease;
+      text-decoration: underline;
+      text-underline-offset: 2px;
+    }
+    .breadcrumbs .crumb:hover {
+      color: var(--accent);
+      text-decoration: underline;
+    }
+    .breadcrumbs .current {
+      color: var(--text-primary);
+      font-weight: 600;
+    }
+    .breadcrumbs .separator {
+      font-size: 0.6rem;
+      color: var(--text-light);
+      opacity: 0.5;
+    }
 
     .section-header { display: flex; align-items: center; justify-content: space-between; background: #222; padding: 12px 20px; border-radius: var(--radius); margin-bottom: 24px; border-bottom: none; flex-wrap: wrap; gap: 12px; }
     .section-header .title-group { display: flex; align-items: center; gap: 12px; flex: 1; min-width: 150px; }
@@ -254,7 +282,6 @@
     .section-header .content-actions button.download-btn { background: #fff; color: #222; }
     .section-header .content-actions button.download-btn:hover { background: #e6e6e6; }
 
-    /* ===== ПЛАВНОЕ ПОЯВЛЕНИЕ КОНТЕНТА И КНОПОК ===== */
     .content-render { animation: fadeInUp 0.35s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
     @keyframes fadeInUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
     .sidebar-header .actions button.primary-add, .section-header .content-actions button, .edit-toolbar button, .modal-footer button { transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); }
@@ -289,7 +316,7 @@
 
     .checklist { display: flex; flex-direction: column; gap: 6px; margin-bottom: 1rem; }
     .checklist-item { display: flex; align-items: stretch; border-radius: var(--radius-sm); transition: var(--transition); border: 1px solid var(--border); overflow: hidden; background: var(--bg-main); box-shadow: var(--shadow); }
-    .checklist-item .time { flex: 0 0 80px; font-weight: 500; color: #fff; background: var(--primary); padding: 10px 10px; font-size: 0.75rem; display: flex; align-items: center; justify-content: center;  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .checklist-item .time { flex: 0 0 80px; font-weight: 500; color: #fff; background: var(--primary); padding: 10px 10px; font-size: 0.75rem; display: flex; align-items: center; justify-content: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .checklist-item .task { flex: 1; padding: 10px 14px; display: flex; align-items: center; background: var(--bg-main); font-size: 0.85rem; line-height: 1.4; }
     .checklist-item .task .checkbox { margin-right: 12px; flex-shrink: 0; width: 20px; height: 20px; border: 2px solid var(--border); border-radius: 4px; cursor: pointer; background: #fff; display: flex; align-items: center; justify-content: center; }
     .checklist-item .task .checkbox.checked { background: #10b981; border-color: #10b981; }
@@ -337,7 +364,46 @@
       .modal-overlay { display: none !important; }
     }
 
-    /* ===== ПЛАВНОЕ ОТКРЫТИЕ МОДАЛЬНОГО ОКНА ===== */
+    /* ===== СТИЛИ ДЛЯ TOAST (ВСПЛЫВАЮЩИЕ УВЕДОМЛЕНИЯ) ===== */
+    #toast-container {
+      position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+      z-index: 9999; display: flex; flex-direction: column; align-items: center;
+      gap: 8px; pointer-events: none;
+    }
+    .toast-msg {
+      background: #333; color: #fff; padding: 10px 20px; border-radius: 6px;
+      font-size: 0.9rem; box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      opacity: 0; transform: translateY(20px); transition: all 0.3s ease;
+      pointer-events: auto; max-width: 90vw; text-align: center;
+    }
+    .toast-msg.show { opacity: 1; transform: translateY(0); }
+    .toast-msg.success { background: #10b981; }
+    .toast-msg.error { background: #e74c3c; }
+
+    /* ===== СТИЛИ ДЛЯ МОДАЛЬНОГО ОКНА ПОДТВЕРЖДЕНИЯ ===== */
+    #confirmOverlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.5); backdrop-filter: blur(4px);
+      display: none; align-items: center; justify-content: center; z-index: 1000; padding: 10px;
+    }
+    #confirmOverlay.active { display: flex; }
+    #confirmOverlay .modal {
+      background: var(--bg-main); border-radius: var(--radius); max-width: 440px; width: 100%;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3); overflow: hidden; border-top: 4px solid var(--accent);
+      animation: scaleIn 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+      padding: 20px 24px;
+    }
+    #confirmOverlay .modal h3 { font-size: 1rem; font-weight: 600; color: var(--text-primary); margin-bottom: 8px; }
+    #confirmOverlay .modal p { font-size: 0.9rem; color: var(--text-secondary); line-height: 1.5; margin-bottom: 20px; }
+    #confirmOverlay .modal .actions { display: flex; justify-content: flex-end; gap: 8px; }
+    #confirmOverlay .modal .actions button {
+      padding: 6px 20px; border-radius: var(--radius-sm); border: none; cursor: pointer;
+      font-size: 0.85rem; font-weight: 500; min-height: 36px; transition: all 0.2s ease;
+    }
+    #confirmOverlay .modal .actions .cancel-btn { background: var(--sidebar-bg); color: var(--text-secondary); }
+    #confirmOverlay .modal .actions .cancel-btn:hover { background: var(--sidebar-hover); }
+    #confirmOverlay .modal .actions .danger-btn { background: #e74c3c; color: #fff; }
+    #confirmOverlay .modal .actions .danger-btn:hover { background: #c0392b; }
+
     .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); display: none; align-items: center; justify-content: center; z-index: 1000; padding: 10px; }
     .modal-overlay.active { display: flex; }
     .modal { background: var(--bg-main); border-radius: var(--radius); max-width: 780px; width: 100%; max-height: 95vh; display: flex; flex-direction: column; box-shadow: 0 20px 60px rgba(0,0,0,0.3); overflow: hidden; border-top: 3px solid var(--accent); animation: scaleIn 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
@@ -439,7 +505,7 @@
     <main class="content-panel" id="contentPanel"></main>
   </div>
 
-  <!-- ===== МОДАЛЬНОЕ ОКНО ===== -->
+  <!-- ===== МОДАЛЬНОЕ ОКНО РЕДАКТИРОВАНИЯ ===== -->
   <div class="modal-overlay" id="modalOverlay">
     <div class="modal">
       <div class="modal-header">
@@ -471,7 +537,77 @@
     </div>
   </div>
 
+  <!-- ===== МОДАЛЬНОЕ ОКНО ПОДТВЕРЖДЕНИЯ ===== -->
+  <div id="confirmOverlay">
+    <div class="modal">
+      <h3 id="confirmTitle">Подтверждение</h3>
+      <p id="confirmMessage">Вы уверены, что хотите выполнить это действие?</p>
+      <div class="actions">
+        <button class="cancel-btn" id="confirmCancel">Отмена</button>
+        <button class="danger-btn" id="confirmOk">Да, удалить</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== TOAST УВЕДОМЛЕНИЯ ===== -->
+  <div id="toast-container"></div>
+
   <script>
+    // ============================================================
+    // 0. TOAST И MODAL CONFIRM (Вспомогательные функции)
+    // ============================================================
+    function showToast(message, isSuccess = true) {
+        const container = document.getElementById('toast-container');
+        const toast = document.createElement('div');
+        toast.className = `toast-msg ${isSuccess ? 'success' : 'error'}`;
+        toast.textContent = message;
+        container.appendChild(toast);
+
+        // Небольшая задержка для срабатывания CSS-перехода
+        requestAnimationFrame(() => {
+            toast.classList.add('show');
+        });
+
+        setTimeout(() => {
+            toast.classList.remove('show');
+            setTimeout(() => {
+                if (toast.parentNode) toast.parentNode.removeChild(toast);
+            }, 300);
+        }, 3500);
+    }
+
+    function showConfirm(message, title = 'Подтверждение') {
+        return new Promise((resolve) => {
+            const overlay = document.getElementById('confirmOverlay');
+            const titleEl = document.getElementById('confirmTitle');
+            const msgEl = document.getElementById('confirmMessage');
+            const okBtn = document.getElementById('confirmOk');
+            const cancelBtn = document.getElementById('confirmCancel');
+
+            titleEl.textContent = title;
+            msgEl.textContent = message;
+            overlay.classList.add('active');
+
+            const closeHandler = (result) => {
+                overlay.classList.remove('active');
+                okBtn.removeEventListener('click', onOk);
+                cancelBtn.removeEventListener('click', onCancel);
+                resolve(result);
+            };
+
+            const onOk = () => closeHandler(true);
+            const onCancel = () => closeHandler(false);
+
+            okBtn.addEventListener('click', onOk);
+            cancelBtn.addEventListener('click', onCancel);
+            
+            // Закрытие по клику на фон
+            overlay.addEventListener('click', function(e) {
+                if (e.target === this) closeHandler(false);
+            });
+        });
+    }
+
     // ============================================================
     // 1. FIREBASE
     // ============================================================
@@ -598,9 +734,6 @@
       }
     }
 
-    // ============================================================
-    // 2. РАБОТА С ЛОКАЛЬНЫМ ХРАНИЛИЩЕМ
-    // ============================================================
     function loadFromLocalStorage() {
       try {
         const stored = localStorage.getItem('hotelChecklistData');
@@ -628,7 +761,7 @@
     }
 
     // ============================================================
-    // 3. ИНИЦИАЛИЗАЦИЯ И РЕНДЕРИНГ ДЕРЕВА
+    // 2. РЕНДЕРИНГ ДЕРЕВА
     // ============================================================
     function renderTree() {
       const container = document.getElementById('treeContainer');
@@ -669,15 +802,15 @@
       container.querySelectorAll('.edit-node-btn').forEach(el => {
         el.addEventListener('click', function(e) {
           e.stopPropagation();
-          if (!isAdmin) { alert('Нет прав'); return; }
+          if (!isAdmin) { showToast('Доступ запрещён. Требуются права администратора.', false); return; }
           openEditModal(this.dataset.id);
         });
       });
       container.querySelectorAll('.delete-node-btn').forEach(el => {
         el.addEventListener('click', function(e) {
           e.stopPropagation();
-          if (!isAdmin) { alert('Нет прав'); return; }
-          if (confirm('Удалить этот раздел?')) deleteSection(this.dataset.id);
+          if (!isAdmin) { showToast('Доступ запрещён.', false); return; }
+          deleteSection(this.dataset.id);
         });
       });
 
@@ -751,7 +884,7 @@
     }
 
     // ============================================================
-    // 4. DRAG & DROP ДЕРЕВА
+    // 3. DRAG & DROP ДЕРЕВА
     // ============================================================
     function bindTreeDragDropEvents(container) {
         let draggedId = null;
@@ -820,7 +953,7 @@
     }
 
     // ============================================================
-    // 5. РЕНДЕРИНГ КОНТЕНТА
+    // 4. РЕНДЕРИНГ КОНТЕНТА (ХЛЕБНЫЕ КРОШКИ + БЕЗ МОРГАНИЯ)
     // ============================================================
     function renderContent(id) {
       const panel = document.getElementById('contentPanel');
@@ -830,7 +963,27 @@
 
       if (!isAdmin && editingId === node.id) editingId = null;
 
-      let html = `<div class="section-header"><div class="title-group"><h2>${escapeHtml(node.title)}</h2>`;
+      // ===== ХЛЕБНЫЕ КРОШКИ =====
+      let breadcrumbHtml = '';
+      const path = getNodePath(data.sections, id);
+      if (path && path.length > 1) {
+          breadcrumbHtml = `<div class="breadcrumbs">`;
+          path.forEach((p, index) => {
+              if (index === path.length - 1) {
+                  breadcrumbHtml += `<span class="current">${escapeHtml(p.title)}</span>`;
+              } else {
+                  breadcrumbHtml += `<span class="crumb" onclick="selectNode('${p.id}')">${escapeHtml(p.title)}</span>`;
+              }
+              if (index < path.length - 1) breadcrumbHtml += `<span class="separator">/</span> `;
+          });
+          breadcrumbHtml += `</div>`;
+      }
+      // ==========================
+
+      let html = '';
+      html += breadcrumbHtml; // Вставляем крошки перед заголовком
+
+      html += `<div class="section-header"><div class="title-group"><h2>${escapeHtml(node.title)}</h2>`;
       if (node.type === 'checklist') {
           html += `<span class="type-badge">Чек-лист</span>`;
       }
@@ -885,20 +1038,19 @@
       html += `</div>`;
       panel.innerHTML = html;
 
+      // ===== БЕЗМОРГАННЫЙ КЛИК ПО ГАЛОЧКЕ =====
       panel.querySelectorAll('.checkbox').forEach(el => {
         el.addEventListener('click', function() {
           const idx = parseInt(this.dataset.index);
           const node = findNode(data.sections, id);
           if (node && node.items && node.items[idx]) {
-            // 1. Меняем состояние в данных
             node.items[idx].checked = !node.items[idx].checked;
-            // 2. Сохраняем в базу
             saveData();
 
-            // 3. Мгновенно переключаем визуал самой галочки (без перерисовки страницы)
+            // Мгновенно меняем визуал галочки
             this.classList.toggle('checked');
 
-            // 4. Обновляем прогресс-бар на лету
+            // Обновляем прогресс-бар на лету
             const total = node.items.length;
             const done = node.items.filter(i => i.checked).length;
             const percent = total > 0 ? Math.round((done / total) * 100) : 0;
@@ -933,35 +1085,31 @@
     }
 
     // ============================================================
-    // 6. ФУНКЦИЯ СОРТИРОВКИ И РЕДАКТИРОВАНИЕ ЧЕК-ЛИСТА
+    // 5. СОРТИРОВКА И РЕДАКТИРОВАНИЕ ЧЕК-ЛИСТА
     // ============================================================
     function sortChecklistByTime(id) {
         const node = findNode(data.sections, id);
         if (!node || node.type !== 'checklist' || !node.items) return;
 
         node.items.sort((a, b) => {
-            // 1. Извлекаем время и переводим в минуты (для математического сравнения)
             const extractMinutes = (str) => {
                 const match = (str || '').match(/(\d{1,2}):(\d{2})/);
                 if (match) {
                     return parseInt(match[1]) * 60 + parseInt(match[2]);
                 }
-                return 9999; // Если времени нет — отправляем в самый конец списка
+                return 9999;
             };
 
             const timeA = extractMinutes(a.time);
             const timeB = extractMinutes(b.time);
 
-            // Сначала сортируем по чистому числовому времени
             if (timeA !== timeB) {
                 return timeA - timeB;
             }
 
-            // Если время совпадает (например, оба равны 13:00), проверяем префикс "до "
             const isBeforeA = (a.time || '').startsWith('до ');
             const isBeforeB = (b.time || '').startsWith('до ');
 
-            // "до 13:00" должно быть ПЕРЕД "13:00-14:00"
             if (isBeforeA && !isBeforeB) return -1;
             if (!isBeforeA && isBeforeB) return 1;
 
@@ -1054,7 +1202,7 @@
     }
 
     // ============================================================
-    // 7. ПЛАВНЫЙ DRAG AND DROP
+    // 6. ПЛАВНЫЙ DRAG AND DROP
     // ============================================================
     function enableDragAndDrop(list) {
         let draggedItem = null;
@@ -1110,7 +1258,7 @@
     }
 
     // ============================================================
-    // 8. ФУНКЦИИ ЭКСПОРТА / ИМПОРТА
+    // 7. ФУНКЦИИ ЭКСПОРТА / ИМПОРТА (заменен alert на toast)
     // ============================================================
     function exportData() {
       const json = JSON.stringify(data, null, 2);
@@ -1140,30 +1288,31 @@
           if (data.sections.length > 0) selectedId = data.sections[0].id;
           else selectedId = null;
           renderContent(selectedId);
-          alert('Данные успешно импортированы!');
+          showToast('Данные успешно импортированы!');
         } catch (err) {
-          alert('Ошибка импорта: ' + err.message);
+          showToast('Ошибка импорта: ' + err.message, false);
         }
       };
       reader.readAsText(file);
       e.target.value = '';
     }
 
-    function resetData() {
-      if (confirm('Сбросить все данные к начальным? Это действие необратимо!')) {
-        localStorage.removeItem('hotelChecklistData');
-        data = deepClone(INITIAL_DATA);
-        saveData();
-        selectedId = data.sections[0]?.id || null;
-        expanded.clear();
-        renderTree();
-        renderContent(selectedId);
-        alert('Данные сброшены');
-      }
+    async function resetData() {
+      const confirm = await showConfirm('Это действие безвозвратно удалит все текущие данные и вернёт приложение к начальному состоянию. Вы уверены?', 'Сброс данных');
+      if (!confirm) return;
+
+      localStorage.removeItem('hotelChecklistData');
+      data = deepClone(INITIAL_DATA);
+      saveData();
+      selectedId = data.sections[0]?.id || null;
+      expanded.clear();
+      renderTree();
+      renderContent(selectedId);
+      showToast('Данные успешно сброшены');
     }
 
     // ============================================================
-    // 9. РЕДАКТОР QUIL (С ДОБАВЛЕННЫМ ВЫРАВНИВАНИЕМ)
+    // 8. РЕДАКТОР QUIL (С ДОБАВЛЕННЫМ ВЫРАВНИВАНИЕМ)
     // ============================================================
     let quillEditor = null;
 
@@ -1196,7 +1345,7 @@
     }
 
     function openEditModal(id) {
-      if (!isAdmin) { alert('Доступ запрещён.'); return; }
+      if (!isAdmin) { showToast('Доступ запрещён. Требуются права администратора.', false); return; }
       const node = findNode(data.sections, id);
       const isNew = id === 'new';
 
@@ -1262,15 +1411,13 @@
            Font.whitelist = ['inter', 'arial', 'georgia', 'times-new-roman'];
            Quill.register(Font, true);
 
-           // ===== ДОБАВЛЯЕМ МОДУЛЬ ВЫРАВНИВАНИЯ =====
            const Align = Quill.import('attributors/style/align');
            Quill.register(Align, true);
-           // ==========================================
 
            const toolbarConfig = [
                [{ 'font': ['inter', 'arial', 'georgia', 'times-new-roman'] }],
                [{ 'size': ['small', false, 'large', 'huge'] }],
-               [{ 'align': [] }], // Кнопки выравнивания (По левому, центру, правому, по ширине)
+               [{ 'align': [] }],
                [{ 'color': [] }, { 'background': [] }],
                [{ header: [1, 2, 3, false] }],
                ['bold', 'italic', 'underline', 'strike'],
@@ -1329,7 +1476,7 @@
     function saveModalEdit(id) {
       if (!isAdmin) return;
       const title = document.getElementById('editTitle').value.trim();
-      if (!title) { alert('Введите название раздела.'); return; }
+      if (!title) { showToast('Введите название раздела.', false); return; }
       const type = document.getElementById('editType').value;
       let contentToSave = '';
       if (type === 'text') { contentToSave = quillEditor ? quillEditor.root.innerHTML : ''; }
@@ -1341,10 +1488,8 @@
         else if (type === 'group') newNode.children = [];
 
         if (type === 'group') {
-            // Папки всегда создаются в корне, отдельно от всех
             data.sections.push(newNode);
         } else {
-            // Тексты и чек-листы создаются внутри выделенной папки (если она есть)
             let parent = null;
             if (selectedId) {
                 const sel = findNode(data.sections, selectedId);
@@ -1363,7 +1508,9 @@
         }
 
         saveData(); renderTree(); selectNode(newNode.id);
-        closeModal(); return;
+        closeModal();
+        showToast('Раздел успешно создан!');
+        return;
       }
 
       const node = findNode(data.sections, id);
@@ -1379,25 +1526,33 @@
           node.content = contentToSave;
         }
         saveData(); renderTree(); renderContent(node.id);
+        closeModal();
+        showToast('Раздел успешно обновлён!');
       }
-      closeModal();
     }
 
     // ============================================================
-    // 10. УДАЛЕНИЕ РАЗДЕЛА
+    // 9. УДАЛЕНИЕ РАЗДЕЛА (с новым модальным окном)
     // ============================================================
-    function deleteSection(id) {
+    async function deleteSection(id) {
       if (!isAdmin) return;
+      const node = findNode(data.sections, id);
+      if (!node) return;
+
+      const confirm = await showConfirm(`Вы уверены, что хотите безвозвратно удалить раздел "${node.title}"?`, 'Удаление раздела');
+      if (!confirm) return;
+
       const parent = getParent(data.sections, id);
       if (parent) parent.children = parent.children.filter(c => c.id !== id);
       else data.sections = data.sections.filter(s => s.id !== id);
       if (selectedId === id) selectedId = data.sections.length > 0 ? data.sections[0].id : null;
       saveData(); renderTree();
       if (selectedId) renderContent(selectedId); else document.getElementById('contentPanel').innerHTML = '';
+      showToast('Раздел успешно удалён.');
     }
 
     // ============================================================
-    // 11. ГЛАВНАЯ ИНИЦИАЛИЗАЦИЯ
+    // 10. ГЛАВНАЯ ИНИЦИАЛИЗАЦИЯ
     // ============================================================
     async function initData() {
       console.log('📦 Запуск initData...');
@@ -1433,7 +1588,7 @@
     }
 
     // ============================================================
-    // 12. ЗАПУСК ПРИЛОЖЕНИЯ
+    // 11. ЗАПУСК ПРИЛОЖЕНИЯ
     // ============================================================
     document.addEventListener('DOMContentLoaded', function() {
       const savedTheme = localStorage.getItem('hotelChecklistTheme') || 'default';
@@ -1457,7 +1612,7 @@
 
       document.getElementById('adminToggle').addEventListener('click', function() {
         if (isAdmin) { isAdmin = false; }
-        else { const pass = prompt('Пароль администратора:'); if (pass === ADMIN_PASSWORD) isAdmin = true; else if (pass !== null) alert('Неверный пароль.'); }
+        else { const pass = prompt('Пароль администратора:'); if (pass === ADMIN_PASSWORD) isAdmin = true; else if (pass !== null) showToast('Неверный пароль.', false); }
         
         document.getElementById('statusBadge').className = isAdmin ? 'status-badge admin' : 'status-badge viewer';
         document.getElementById('statusBadge').textContent = isAdmin ? 'Админ' : 'Просмотр';
@@ -1486,7 +1641,7 @@
       const addBtn = document.getElementById('addSectionBtn');
       if (addBtn) {
         addBtn.addEventListener('click', function() {
-          if (!isAdmin) return alert('Нет прав администратора.');
+          if (!isAdmin) return showToast('Нет прав администратора.', false);
           openEditModal('new');
         });
       }
