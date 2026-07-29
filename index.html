@@ -510,7 +510,13 @@
       sections: [{ id: 's1', title: 'Общая инструкция', type: 'text', content: '<h3>Добро пожаловать!</h3><p>Здесь вы можете создавать инструкции и чек-листы.</p>' }]
     };
 
-    function generateId() { return 'n' + (nextId++); }
+    // ============================================================
+    // ИСПРАВЛЕНИЕ БАГА: УНИКАЛЬНЫЙ ID (с временной меткой)
+    // ============================================================
+    function generateId() { 
+        return 'n' + Date.now() + Math.random().toString(36).substr(2, 6); 
+    }
+
     function deepClone(obj) { return JSON.parse(JSON.stringify(obj)); }
     function escapeHtml(text) { const div = document.createElement('div'); div.textContent = text; return div.innerHTML; }
 
@@ -615,6 +621,11 @@
       const query = searchQuery.trim().toLowerCase();
       const filtered = query ? filterTree(data.sections, query) : data.sections;
 
+      // ИСПРАВЛЕНИЕ: Удаляем из expanded несуществующие узлы
+      expanded.forEach((val, key) => {
+          if (!findNode(data.sections, key)) expanded.delete(key);
+      });
+
       if (!filtered || filtered.length === 0) {
         container.innerHTML = `<div class="empty-tree"><i class="fas fa-list"></i><p>Нет разделов.</p></div>`;
         return;
@@ -688,6 +699,7 @@
       if (expanded.has(node.id)) {
         isExpanded = expanded.get(node.id);
       } else {
+        // Раскрываем, если это активная группа или родитель активного элемента
         isExpanded = (isActive && isGroup) || (selectedId && isAncestor(node, selectedId));
       }
       
@@ -806,7 +818,6 @@
       if (!isAdmin && editingId === node.id) editingId = null;
 
       let html = `<div class="section-header"><div class="title-group"><h2>${escapeHtml(node.title)}</h2>`;
-      // Убрали бейдж ТЕКСТ, оставили только для чек-листа
       if (node.type === 'checklist') {
           html += `<span class="type-badge">Чек-лист</span>`;
       }
@@ -818,7 +829,6 @@
           html += `<button class="danger-btn" id="cancelEditsBtn"><i class="fas fa-times"></i> Отмена</button>`;
         } else {
           if (isAdmin) html += `<button class="primary-btn" id="editSectionBtn"><i class="fas fa-pen"></i> Редактировать</button>`;
-          // ДОБАВИЛИ КНОПКУ СОРТИРОВКИ
           if (isAdmin) html += `<button class="download-btn" id="sortChecklistBtn"><i class="fas fa-sort-amount-down"></i> Сортировать по времени</button>`;
         }
         html += `<button class="download-btn" id="printChecklistBtn"><i class="fas fa-file-pdf"></i> Экспорт / Печать (PDF)</button>`;
@@ -877,7 +887,6 @@
       const printBtn = document.getElementById('printChecklistBtn');
       if (printBtn) printBtn.addEventListener('click', function() { window.print(); });
 
-      // ОБРАБОТЧИК СОРТИРОВКИ
       const sortBtn = document.getElementById('sortChecklistBtn');
       if (sortBtn) sortBtn.addEventListener('click', function() { sortChecklistByTime(node.id); });
 
@@ -900,21 +909,17 @@
     // ============================================================
     // 6. ФУНКЦИЯ СОРТИРОВКИ И РЕДАКТИРОВАНИЕ ЧЕК-ЛИСТА
     // ============================================================
-    // Функция сортировки пунктов по времени (с умным парсингом строк до 14:00 и т.д.)
     function sortChecklistByTime(id) {
         const node = findNode(data.sections, id);
         if (!node || node.type !== 'checklist' || !node.items) return;
 
         node.items.sort((a, b) => {
-            // 1. Извлекаем первое вхождение времени в формате ЧЧ:ММ из строки
             const timeA = (a.time || '').match(/(\d{1,2}:\d{2})/);
             const timeB = (b.time || '').match(/(\d{1,2}:\d{2})/);
             
-            // 2. Если время найдено, берем его. Если нет — ставим '99:99' (они уйдут в самый конец)
             const valA = timeA ? timeA[1] : '99:99';
             const valB = timeB ? timeB[1] : '99:99';
             
-            // 3. Сравниваем уже чистые временные метки
             return valA.localeCompare(valB);
         });
         
@@ -1165,7 +1170,6 @@
       const toolbarContainer = container.parentElement.querySelector('.ql-toolbar');
       if (toolbarContainer) { toolbarContainer.remove(); }
 
-      // ИСПРАВЛЕНИЕ: Меняем click на mousedown, чтобы окно не закрывалось при выделении текста за его пределами
       overlay.onmousedown = null;
       overlay.addEventListener('mousedown', function(e) {
           if (e.target === this) closeModal();
@@ -1289,6 +1293,10 @@
         if (selectedId) {
           const sel = findNode(data.sections, selectedId);
           if (sel && sel.children !== undefined) parent = sel;
+          else {
+            const p = getParent(data.sections, selectedId);
+            if (p) parent = p;
+          }
         }
         if (parent) {
           parent.children = parent.children || [];
