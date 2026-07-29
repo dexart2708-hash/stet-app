@@ -380,6 +380,44 @@
     .ql-snow .ql-picker.ql-size .ql-picker-item[data-value="huge"]::before { content: "Огромный"; }
     .ql-snow .ql-picker.ql-size .ql-picker-item[data-value="false"]::before { content: "Обычный"; }
     .ql-snow .ql-picker.ql-size .ql-picker-label::before { content: "Размер"; }
+    
+        /* ===== НОВЫЕ ВИЗУАЛЬНЫЕ ЭФФЕКТЫ (ПЛАВНОСТЬ) ===== */
+    
+    /* 1. Плавное появление текста в правой панели при переключении */
+    .content-render {
+      animation: fadeInUp 0.35s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+    }
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(12px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* 2. Более мягкое и элегантное открытие модального окна */
+    .modal {
+      animation: scaleIn 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+    }
+    @keyframes scaleIn {
+      from { opacity: 0; transform: scale(0.95); }
+      to { opacity: 1; transform: scale(1); }
+    }
+
+    /* 3. Приятный эффект "всплытия" и легкой тени для кнопок при наведении */
+    .sidebar-header .actions button.primary-add,
+    .section-header .content-actions button,
+    .edit-toolbar button,
+    .modal-footer button {
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .sidebar-header .actions button.primary-add:hover,
+    .section-header .content-actions button:hover,
+    .edit-toolbar button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+    }
+    .modal-footer button:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+    }
   </style>
 </head>
 <body>
