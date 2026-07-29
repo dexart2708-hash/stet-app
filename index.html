@@ -237,18 +237,24 @@
       box-shadow: none;
     }
 
+        /* ===== ИДЕАЛЬНО ПЛАВНОЕ РАСКРЫТИЕ ПАПОК (CSS GRID) ===== */
     .tree-node .children {
+      display: grid;
+      grid-template-rows: 0fr; /* Начальное состояние: высота 0 */
+      transition: grid-template-rows 0.4s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease;
+      opacity: 0;
       padding-left: 0;
       overflow: hidden;
-      max-height: 0;
-      /* Используем cubic-bezier для мягкого ускорения и замедления */
-      transition: max-height 0.45s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.35s ease;
-      opacity: 0;
     }
     .tree-node .children.open {
-      max-height: 9999px; /* Достаточно большое число, чтобы анимация не обрывалась */
+      grid-template-rows: 1fr; /* Конечное состояние: занимает всю свою естественную высоту */
       opacity: 1;
     }
+    /* Критически важный внутренний селектор, чтобы анимация "схлопывалась" корректно */
+    .tree-node .children > .tree-node {
+      min-height: 0;
+    }
+    
     .empty-tree { padding: 20px 16px; text-align: center; color: var(--text-light); font-size: 0.85rem; }
 
     .node-label.dragging { opacity: 0.4; }
