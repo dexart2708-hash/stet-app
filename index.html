@@ -890,9 +890,22 @@
           const idx = parseInt(this.dataset.index);
           const node = findNode(data.sections, id);
           if (node && node.items && node.items[idx]) {
+            // 1. Меняем состояние в данных
             node.items[idx].checked = !node.items[idx].checked;
+            // 2. Сохраняем в базу
             saveData();
-            renderContent(id);
+
+            // 3. Мгновенно переключаем визуал самой галочки (без перерисовки страницы)
+            this.classList.toggle('checked');
+
+            // 4. Обновляем прогресс-бар на лету
+            const total = node.items.length;
+            const done = node.items.filter(i => i.checked).length;
+            const percent = total > 0 ? Math.round((done / total) * 100) : 0;
+            const progressFill = panel.querySelector('.progress-fill');
+            const progressText = panel.querySelector('.progress-text');
+            if (progressFill) progressFill.style.width = percent + '%';
+            if (progressText) progressText.textContent = done + ' из ' + total + ' выполнено (' + percent + '%)';
           }
         });
       });
