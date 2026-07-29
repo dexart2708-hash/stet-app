@@ -43,9 +43,9 @@
     }
     [data-theme="forest"] { --primary: #1e6b3b; --primary-light: #2a8a4e; --primary-dark: #124d2a; --accent: #e48c00; --accent-hover: #c97a00; --header-bg: #1e6b3b; --header-gradient: linear-gradient(135deg, #124d2a 0%, #2a8a4e 100%); }
     [data-theme="sunset"] { --primary: #b85a2a; --primary-light: #d4703a; --primary-dark: #8f451f; --accent: #e48c00; --accent-hover: #c97a00; --header-bg: #b85a2a; --header-gradient: linear-gradient(135deg, #8f451f 0%, #d4703a 100%); }
-    [data-theme="navy"] { --primary: #1a2a4a; --primary-light: #2a406a; --primary-dark: #0e1a30; --accent: #e48c00; --accent-hover: #c97a00; --header-bg: #1a2a4a; --header-gradient: linear-gradient(135deg, #111e36 0%, #1a2a4a 100%); }
-    [data-theme="rose"] { --primary: #9e2b5e; --primary-light: #c03a76; --primary-dark: #731f44; --accent: #e48c00; --accent-hover: #c97a00; --header-bg: #9e2b5e; --header-gradient: linear-gradient(135deg, #85264f 0%, #9e2b5e 100%); }
-    [data-theme="slate"] { --primary: #475569; --primary-light: #64748b; --primary-dark: #334155; --accent: #e48c00; --accent-hover: #c97a00; --header-bg: #475569; --header-gradient: linear-gradient(135deg, #3a4655 0%, #475569 100%); }
+    [data-theme="navy"] { --primary: #1a2a4a; --primary-light: #2a406a; --primary-dark: #0e1a30; --accent: #e48c00; --accent-hover: #c97a00; --header-bg: #1a2a4a; --header-gradient: linear-gradient(135deg, #111e36 0%, #2a406a 100%); }
+    [data-theme="rose"] { --primary: #9e2b5e; --primary-light: #c03a76; --primary-dark: #731f44; --accent: #e48c00; --accent-hover: #c97a00; --header-bg: #9e2b5e; --header-gradient: linear-gradient(135deg, #731f44 0%, #c03a76 100%); }
+    [data-theme="slate"] { --primary: #475569; --primary-light: #64748b; --primary-dark: #334155; --accent: #e48c00; --accent-hover: #c97a00; --header-bg: #475569; --header-gradient: linear-gradient(135deg, #334155 0%, #64748b 100%); }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
@@ -225,6 +225,7 @@
       box-shadow: none;
     }
 
+    /* ===== МЯГКОЕ И ПЛАВНОЕ РАСКРЫТИЕ ПАПОК (CSS GRID) ===== */
     .tree-node .children { display: grid; grid-template-rows: 0fr; transition: grid-template-rows 0.4s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease; opacity: 0; padding-left: 0; overflow: hidden; }
     .tree-node .children.open { grid-template-rows: 1fr; opacity: 1; }
     .tree-node .children > .tree-node { min-height: 0; }
@@ -694,7 +695,6 @@
       return false;
     }
 
-    // ===== ИСПРАВЛЕНИЕ: Добавлена недостающая функция getNodePath =====
     function getNodePath(tree, id, path = []) {
         for (const node of tree) {
             if (node.id === id) {
@@ -707,7 +707,6 @@
         }
         return null;
     }
-    // =================================================================
 
     function updateSyncStatus(status, text) {
       const dot = document.getElementById('syncDot'), txt = document.getElementById('syncText');
@@ -782,7 +781,7 @@
     }
 
     // ============================================================
-    // 2. РЕНДЕРИНГ ДЕРЕВА
+    // 2. РЕНДЕРИНГ ДЕРЕВА (ИСПРАВЛЕН КЛИК ПО ПАПКЕ)
     // ============================================================
     function renderTree() {
       const container = document.getElementById('treeContainer');
@@ -815,17 +814,22 @@
       container.querySelectorAll('.node-label').forEach(el => {
         el.addEventListener('click', function(e) {
           const id = this.dataset.id;
-          if (e.target.closest('.toggle')) {
-            const node = findNode(data.sections, id);
-            if (node && node.children) {
-              const current = expanded.get(id);
-              if (current === true) expanded.set(id, false);
-              else expanded.set(id, true);
-              renderTree();
-            }
+          
+          // Если нажали на кнопки редактирования/удаления - игнорируем
+          if (e.target.closest('.node-actions')) return;
+
+          const node = findNode(data.sections, id);
+          
+          // Если это группа (папка) - переключаем раскрытие в любом месте строки
+          if (node && node.children && node.children.length > 0) {
+            const current = expanded.get(id);
+            if (current === true) expanded.set(id, false);
+            else expanded.set(id, true);
+            renderTree();
             return;
           }
-          if (e.target.closest('.node-actions')) return;
+          
+          // Если это файл - выбираем раздел
           selectNode(id);
         });
       });
