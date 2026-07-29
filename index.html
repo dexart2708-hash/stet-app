@@ -17,7 +17,6 @@
   <script src="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.js"></script>
 
   <style>
-    /* ===== НОВАЯ ТЕМА (В СТИЛЕ СТАЖИРОВКИ) ===== */
     :root {
       --primary: #2b2b2b;       /* Темно-коричневый/угольный */
       --primary-light: #3e3e3e;
@@ -61,15 +60,46 @@
     ::-webkit-scrollbar-track { background: #f1f5f9; }
     ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
 
-    /* ===== ШАПКА ===== */
     .app-header {
       display: flex; align-items: center; justify-content: space-between;
       padding: 8px 16px; background: var(--header-bg); color: var(--header-text);
-      border-bottom: none; /* Убираем желтую полоску */
+      border-bottom: none;
       flex-shrink: 0; z-index: 10; flex-wrap: wrap; gap: 8px;
     }
-    .app-header .logo { display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 1.15rem; color: #fff; white-space: nowrap; }
-    .app-header .logo img { height: 32px; width: auto; border-radius: 4px; object-fit: contain; flex-shrink: 0; }
+    
+    /* ===== ОБНОВЛЕННАЯ ШАПКА (ЛОГОТИП И ТЕКСТ) ===== */
+    .app-header .logo { 
+      display: flex; 
+      align-items: center; 
+      gap: 12px; 
+      color: #fff; 
+      white-space: nowrap; 
+    }
+    .app-header .logo img { 
+      height: 40px; 
+      width: auto; 
+      border-radius: 4px; 
+      object-fit: contain; 
+      flex-shrink: 0; 
+    }
+    .app-header .logo .logo-text {
+      display: flex;
+      flex-direction: column;
+      line-height: 1.2;
+    }
+    .app-header .logo .main-title {
+      font-weight: 700;
+      font-size: 1.1rem;
+      letter-spacing: 0.5px;
+    }
+    .app-header .logo .sub-title {
+      font-weight: 500;
+      font-size: 0.65rem;
+      color: var(--accent);
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+    }
+
     .header-controls { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; flex: 1; justify-content: flex-end; }
     
     .search-wrap { position: relative; display: flex; align-items: center; flex: 1 1 200px; min-width: 120px; }
@@ -78,7 +108,7 @@
       padding: 6px 10px 6px 32px; 
       border: none; 
       border-radius: 4px; 
-      background: #1f1f1f; /* Темнее основного фона */
+      background: #1f1f1f; 
       font-size: 0.85rem; 
       width: 100%; 
       outline: none; 
@@ -92,7 +122,7 @@
     .search-clear.visible { display: block; }
 
     .theme-picker { display: flex; align-items: center; gap: 3px; }
-    .theme-picker label { font-size: 0.7rem; color: rgba(255,255,255,0.6); margin-right: 4px; display: none; } /* Скрываем для чистоты */
+    .theme-picker label { font-size: 0.7rem; color: rgba(255,255,255,0.6); margin-right: 4px; display: none; }
     .theme-btn { width: 20px; height: 20px; border-radius: 50%; border: 2px solid transparent; cursor: pointer; transition: var(--transition); flex-shrink: 0; }
     .theme-btn.active { border-color: #fff; box-shadow: 0 0 0 2px var(--header-bg), 0 0 0 4px #fff; }
     .theme-btn[data-theme="default"] { background: #2b2b2b; }
@@ -117,7 +147,6 @@
     .admin-status button:hover { background: rgba(255,255,255,0.2); }
     .admin-status button.admin-btn { background: var(--accent); border-color: var(--accent); color: #fff; }
 
-    /* ===== АДМИН КНОПКИ ===== */
     .admin-data-actions { display: none; align-items: center; gap: 6px; }
     .admin-data-actions.visible { display: flex; }
     .admin-data-actions button {
@@ -144,7 +173,6 @@
 
     .app-body { display: flex; flex: 1; overflow: hidden; }
 
-    /* ===== БОКОВАЯ ПАНЕЛЬ ===== */
     .sidebar { width: 280px; min-width: 280px; background: var(--sidebar-bg); border-right: 1px solid var(--border); display: flex; flex-direction: column; overflow: hidden; }
     .sidebar-header { padding: 16px 16px 12px; display: flex; justify-content: space-between; align-items: center; border-bottom: none; flex-shrink: 0; background: transparent; }
     .sidebar-header h3 { font-size: 0.75rem; font-weight: 600; color: var(--text-light); text-transform: uppercase; letter-spacing: 0.5px; }
@@ -158,7 +186,6 @@
     .sidebar-tree { flex: 1; overflow-y: auto; padding: 0 12px 20px; }
     .tree-node { margin-bottom: 2px; }
     
-    /* Стили для папок-заголовков */
     .node-label.group-folder {
       background: #1a1a1a;
       color: #f4f2ea;
@@ -177,13 +204,12 @@
     .node-label.group-folder .icon,
     .node-label.group-folder .toggle,
     .node-label.group-folder .node-actions {
-      display: none; /* Скрываем иконку папки и стрелочку */
+      display: none;
     }
     .node-label.group-folder.active {
-      background: #1a1a1a; /* Оставляем такой же темный */
+      background: #1a1a1a;
     }
     
-    /* Стили для элементов в меню */
     .node-label:not(.group-folder) {
       display: flex; align-items: center; padding: 6px 12px; border-radius: var(--radius-sm); cursor: pointer; transition: var(--transition); gap: 6px; position: relative; font-size: 0.85rem; color: var(--text-secondary);
     }
@@ -192,7 +218,6 @@
     .node-label:not(.group-folder).active .icon { color: #fff; }
     .node-label:not(.group-folder) .icon { width: 16px; text-align: center; color: var(--text-light); flex-shrink: 0; font-size: 0.8rem; }
     
-    /* Нумерация списка */
     .children.open { counter-reset: item; }
     .children.open .node-label:not(.group-folder) { counter-increment: item; }
     .children.open .node-label:not(.group-folder)::before {
@@ -207,12 +232,10 @@
     .tree-node .children.open { max-height: 2000px; opacity: 1; }
     .empty-tree { padding: 20px 16px; text-align: center; color: var(--text-light); font-size: 0.85rem; }
 
-    /* Drag & Drop */
     .node-label.dragging { opacity: 0.4; }
     .node-label.drop-target { background-color: var(--accent); color: #fff; border-radius: var(--radius-sm); }
     .node-label.drop-target .icon, .node-label.drop-target .title, .node-label.drop-target .toggle { color: #fff; }
 
-    /* ===== ПАНЕЛЬ КОНТЕНТА ===== */
     .content-panel { flex: 1; overflow-y: auto; padding: 20px 24px 30px; background: var(--bg-main); display: flex; flex-direction: column; }
     .content-panel .empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; color: var(--text-light); text-align: center; }
     .content-panel .empty-state i { font-size: 3rem; margin-bottom: 16px; opacity: 0.3; }
@@ -252,13 +275,11 @@
     .content-render table th, .content-render table td { border: 1px solid var(--border); padding: 8px 10px; text-align: left; }
     .content-render table th { background: var(--sidebar-bg); font-weight: 600; }
     
-    /* ===== ПРОГРЕСС-БАР ===== */
     .progress-wrap { margin-bottom: 24px; display: flex; flex-direction: column; gap: 6px; }
     .progress-text { font-size: 0.85rem; font-weight: 500; color: var(--text-secondary); }
     .progress-track { width: 100%; height: 6px; background: var(--bg-panel); border-radius: 50px; overflow: hidden; }
     .progress-fill { height: 100%; background: #10b981; border-radius: 50px; transition: width 0.3s ease; }
 
-    /* ===== ЧЕК-ЛИСТ ===== */
     .checklist { display: flex; flex-direction: column; gap: 6px; margin-bottom: 1rem; }
     .checklist-item { display: flex; align-items: stretch; border-radius: var(--radius-sm); transition: var(--transition); border: 1px solid var(--border); overflow: hidden; background: var(--bg-main); box-shadow: var(--shadow); }
     .checklist-item .time { flex: 0 0 80px; font-weight: 500; color: #fff; background: var(--primary); padding: 10px 10px; font-size: 0.75rem; display: flex; align-items: center; justify-content: center; }
@@ -267,7 +288,6 @@
     .checklist-item .task .checkbox.checked { background: #10b981; border-color: #10b981; }
     .checklist-item .task .checkbox.checked::after { content: "✓"; color: #fff; font-size: 0.8rem; }
 
-    /* ===== РЕДАКТИРОВАНИЕ ЧЕК-ЛИСТА ===== */
     .edit-checklist { display: flex; flex-direction: column; gap: 6px; margin-top: 4px; }
     .edit-row { display: flex; align-items: center; gap: 6px; background: var(--bg-panel); padding: 6px; border-radius: var(--radius-sm); border: 1px solid transparent; transition: margin-top 0.2s ease, opacity 0.2s ease, border-color 0.2s; touch-action: none; }
     .edit-row.drag-over { border-color: var(--accent); background: var(--sidebar-active); transform: scale(1.01); }
@@ -285,12 +305,16 @@
       .sidebar { width: 240px; min-width: 240px; }
       .content-panel { padding: 16px 14px 20px; }
       .checklist-item .time { flex: 0 0 60px; font-size: 0.7rem; }
+      .app-header .logo .main-title { font-size: 0.9rem; }
+      .app-header .logo .sub-title { font-size: 0.55rem; }
     }
     @media (max-width: 600px) {
       .app-body { flex-direction: column; }
       .sidebar { width: 100%; min-width: unset; max-height: 40vh; border-right: none; border-bottom: 1px solid var(--border); }
       .content-panel { flex: 1; overflow-y: auto; padding: 12px 12px 20px; }
       .section-header .title-group h2 { font-size: 0.9rem; }
+      .app-header .logo .main-title { font-size: 0.85rem; }
+      .app-header .logo .sub-title { font-size: 0.5rem; }
     }
 
     @media print {
@@ -306,7 +330,6 @@
       .modal-overlay { display: none !important; }
     }
 
-    /* ===== МОДАЛЬНОЕ ОКНО ===== */
     .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); display: none; align-items: center; justify-content: center; z-index: 1000; padding: 10px; }
     .modal-overlay.active { display: flex; }
     .modal { background: var(--bg-main); border-radius: var(--radius); max-width: 780px; width: 100%; max-height: 95vh; display: flex; flex-direction: column; box-shadow: 0 20px 60px rgba(0,0,0,0.3); overflow: hidden; border-top: 3px solid var(--accent); }
@@ -329,7 +352,6 @@
     .modal-footer button.save { background: var(--accent); color: #fff; }
     .modal-footer button.save:hover { background: var(--accent-hover); }
     
-    /* ===== СТИЛИ ИНСТРУМЕНТОВ QUIL ===== */
     .ql-snow .ql-picker.ql-font .ql-picker-label[data-value="inter"]::before { content: "Inter"; }
     .ql-snow .ql-picker.ql-font .ql-picker-item[data-value="inter"]::before { content: "Inter"; }
     .ql-snow .ql-picker.ql-font .ql-picker-label[data-value="arial"]::before { content: "Arial"; }
@@ -353,10 +375,15 @@
 </head>
 <body>
   <header class="app-header">
+    <!-- ===== ОБНОВЛЕННЫЙ БЛОК ЛОГОТИПА ===== -->
     <div class="logo">
       <img src="./favicon.png" alt="Логотип" />
-      <span>Чек лист управляющего отелем</span>
+      <div class="logo-text">
+        <span class="main-title">Чек лист</span>
+        <span class="sub-title">СЕТЬ ОТЕЛЕЙ НОМЕРА</span>
+      </div>
     </div>
+
     <div class="header-controls">
       <div class="search-wrap">
         <i class="fas fa-search"></i>
@@ -372,7 +399,6 @@
         <button class="theme-btn" data-theme="slate" title="Серый"></button>
       </div>
       
-      <!-- ===== КНОПКИ ДЛЯ АДМИНА ===== -->
       <div class="admin-data-actions" id="adminDataActions">
         <button class="export-btn" id="exportDataBtn"><i class="fas fa-download"></i> Экспорт</button>
         <button class="import-btn" id="importDataBtn"><i class="fas fa-upload"></i> Импорт</button>
@@ -666,12 +692,10 @@
         isExpanded = (isActive && isGroup) || (selectedId && isAncestor(node, selectedId));
       }
       
-      // Если это группа, иконка не нужна, но для логики оставляем
       const icon = isGroup ? (isExpanded ? 'fa-folder-open' : 'fa-folder') : (node.type === 'checklist' ? 'fa-check-square' : 'fa-file-alt');
       
       let html = `<div class="tree-node" data-id="${node.id}"><div class="node-label ${isActive ? 'active' : ''}${isGroup ? ' group-folder' : ''}" data-id="${node.id}">`;
       
-      // Отрисовка содержимого
       if (isGroup) {
          html += `<span class="title">${escapeHtml(node.title)}</span>`;
       } else {
