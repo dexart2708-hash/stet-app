@@ -269,6 +269,26 @@
     .modal-footer button.cancel:hover { background: var(--sidebar-hover); }
     .modal-footer button.save { background: var(--accent); color: #fff; }
     .modal-footer button.save:hover { background: var(--accent-hover); }
+    
+    /* ===== СТИЛИ ДЛЯ НОВЫХ ИНСТРУМЕНТОВ QUIL ===== */
+    /* Выпадающий список шрифтов в редакторе */
+    .ql-snow .ql-picker.ql-font .ql-picker-label::before,
+    .ql-snow .ql-picker.ql-font .ql-picker-item::before {
+      content: attr(data-label);
+    }
+    .ql-font-inter { font-family: 'Inter', sans-serif; }
+    .ql-font-arial { font-family: 'Arial', sans-serif; }
+    .ql-font-georgia { font-family: 'Georgia', serif; }
+    .ql-font-times-new-roman { font-family: 'Times New Roman', serif; }
+    .ql-snow .ql-picker.ql-size .ql-picker-label::before,
+    .ql-snow .ql-picker.ql-size .ql-picker-item::before {
+      content: attr(data-label);
+    }
+    .ql-snow .ql-picker.ql-size .ql-picker-item[data-value="small"]::before { content: "Мелкий"; }
+    .ql-snow .ql-picker.ql-size .ql-picker-item[data-value="large"]::before { content: "Крупный"; }
+    .ql-snow .ql-picker.ql-size .ql-picker-item[data-value="huge"]::before { content: "Огромный"; }
+    .ql-snow .ql-picker.ql-size .ql-picker-item[data-value="false"]::before { content: "Обычный"; }
+    .ql-snow .ql-picker.ql-size .ql-picker-label::before { content: "Размер"; }
   </style>
 </head>
 <body>
@@ -1061,12 +1081,24 @@
     function initQuill() {
        const container = document.getElementById('editor-container');
        if (!container) return;
+       
        container.innerHTML = ''; 
        const toolbarContainer = container.parentElement.querySelector('.ql-toolbar');
-       if (toolbarContainer) { toolbarContainer.remove(); }
+       if (toolbarContainer) {
+           toolbarContainer.remove();
+       }
        
        try {
+           // 1. Регистрируем доступные шрифты
+           var Font = Quill.import('attributors/class/font');
+           Font.whitelist = ['inter', 'arial', 'georgia', 'times-new-roman'];
+           Quill.register(Font, true);
+
+           // 2. Расширяем панель инструментов
            const toolbarConfig = [
+               [{ 'font': ['inter', 'arial', 'georgia', 'times-new-roman'] }], // Выбор шрифта
+               [{ 'size': ['small', false, 'large', 'huge'] }],                 // Размер текста
+               [{ 'color': [] }, { 'background': [] }],                        // Цвет текста и заливки
                [{ header: [1, 2, 3, false] }],
                ['bold', 'italic', 'underline', 'strike'],
                [{ list: 'ordered'}, { list: 'bullet' }],
@@ -1078,6 +1110,18 @@
                modules: { toolbar: toolbarConfig },
                theme: 'snow'
            });
+           
+           const node = findNode(data.sections, document.getElementById('modalOverlay').dataset.editId);
+           if (node && node.content) {
+               quillEditor.clipboard.dangerouslyPasteHTML(node.content);
+           } else {
+               quillEditor.setText('Введите ваши инструкции, вставьте изображения...');
+           }
+       } catch (e) {
+           console.error("Ошибка создания Quill:", e);
+           container.innerHTML = `<p style="color:#e74c3c;padding:20px;">Не удалось загрузить визуальный редактор.</p>`;
+       }
+    }
 
            // ======================================================================
            // Обработчик картинок с автоматическим сжатием через Canvas
