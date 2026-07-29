@@ -200,7 +200,6 @@
       justify-content: space-between;
       align-items: center;
     }
-    /* ИСПРАВЛЕНИЕ: Убираем только иконку папки, оставляем стрелочку и кнопки админа */
     .node-label.group-folder .icon { display: none; }
     
     .node-label:not(.group-folder) {
@@ -582,8 +581,27 @@
       }
     }
 
+    // ============================================================
+    // 2. РАБОТА С ЛОКАЛЬНЫМ ХРАНИЛИЩЕМ
+    // ============================================================
+    function loadFromLocalStorage() {
+      try {
+        const stored = localStorage.getItem('hotelChecklistData');
+        if (stored) {
+          return JSON.parse(stored);
+        }
+      } catch (e) {
+        console.warn('Ошибка чтения LocalStorage:', e);
+      }
+      return null;
+    }
+
     function saveToLocalStorage(dataObj) {
-      localStorage.setItem('hotelChecklistData', JSON.stringify(dataObj));
+      try {
+        localStorage.setItem('hotelChecklistData', JSON.stringify(dataObj));
+      } catch (e) {
+        console.warn('Ошибка записи LocalStorage:', e);
+      }
     }
 
     function saveData() {
