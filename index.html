@@ -511,7 +511,7 @@
     };
 
     // ============================================================
-    // ИСПРАВЛЕНИЕ БАГА: УНИКАЛЬНЫЙ ID (с временной меткой)
+    // БЕЗОПАСНАЯ ГЕНЕРАЦИЯ ID
     // ============================================================
     function generateId() { 
         return 'n' + Date.now() + Math.random().toString(36).substr(2, 6); 
@@ -621,7 +621,7 @@
       const query = searchQuery.trim().toLowerCase();
       const filtered = query ? filterTree(data.sections, query) : data.sections;
 
-      // ИСПРАВЛЕНИЕ: Удаляем из expanded несуществующие узлы
+      // Очистка "мертвых" ссылок
       expanded.forEach((val, key) => {
           if (!findNode(data.sections, key)) expanded.delete(key);
       });
@@ -699,7 +699,7 @@
       if (expanded.has(node.id)) {
         isExpanded = expanded.get(node.id);
       } else {
-        // Раскрываем, если это активная группа или родитель активного элемента
+        // Раскрываем родителя активного элемента
         isExpanded = (isActive && isGroup) || (selectedId && isAncestor(node, selectedId));
       }
       
@@ -1289,21 +1289,30 @@
         else if (type === 'checklist') newNode.items = [{ time: '09:00', task: 'Пример задачи', checked: false }];
         else if (type === 'group') newNode.children = [];
 
-        let parent = null;
-        if (selectedId) {
-          const sel = findNode(data.sections, selectedId);
-          if (sel && sel.children !== undefined) parent = sel;
-          else {
-            const p = getParent(data.sections, selectedId);
-            if (p) parent = p;
-          }
-        }
-        if (parent) {
-          parent.children = parent.children || [];
-          parent.children.push(newNode);
+        // ========== ИСПРАВЛЕНИЕ: ЧЕТКОЕ РАЗДЕЛЕНИЕ ЛОГИКИ ==========
+        if (type === 'group') {
+            // Папки всегда создаются в корне, отдельно от всех
+            data.sections.push(newNode);
         } else {
-          data.sections.push(newNode);
+            // Тексты и чек-листы создаются внутри выделенной папки (если она есть)
+            let parent = null;
+            if (selectedId) {
+                const sel = findNode(data.sections, selectedId);
+                if (sel && sel.children !== undefined) parent = sel;
+                else {
+                    const p = getParent(data.sections, selectedId);
+                    if (p) parent = p;
+                }
+            }
+            if (parent) {
+                parent.children = parent.children || [];
+                parent.children.push(newNode);
+            } else {
+                data.sections.push(newNode);
+            }
         }
+        // ============================================================
+
         saveData(); renderTree(); selectNode(newNode.id);
         closeModal(); return;
       }
