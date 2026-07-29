@@ -237,8 +237,18 @@
       box-shadow: none;
     }
 
-    .tree-node .children { padding-left: 0; overflow: hidden; max-height: 0; transition: max-height 0.35s ease, opacity 0.25s ease; opacity: 0; }
-    .tree-node .children.open { max-height: 2000px; opacity: 1; }
+    .tree-node .children {
+      padding-left: 0;
+      overflow: hidden;
+      max-height: 0;
+      /* Используем cubic-bezier для мягкого ускорения и замедления */
+      transition: max-height 0.45s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.35s ease;
+      opacity: 0;
+    }
+    .tree-node .children.open {
+      max-height: 9999px; /* Достаточно большое число, чтобы анимация не обрывалась */
+      opacity: 1;
+    }
     .empty-tree { padding: 20px 16px; text-align: center; color: var(--text-light); font-size: 0.85rem; }
 
     .node-label.dragging { opacity: 0.4; }
