@@ -13,11 +13,8 @@
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 
-  <!-- Основной Quill -->
   <link href="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.snow.css" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.js"></script>
-  
-  <!-- Дополнительный модуль для таблиц (Quill 2.0) -->
   <script src="https://cdn.jsdelivr.net/npm/quill-table@2.0.1/dist/quill-table.js"></script>
 
   <style>
@@ -401,7 +398,6 @@
     .modal-footer button.save { background: var(--accent); color: #fff; }
     .modal-footer button.save:hover { background: var(--accent-hover); }
     
-    /* Стили Quill */
     .ql-snow .ql-picker.ql-font .ql-picker-label[data-value="inter"]::before { content: "Inter"; }
     .ql-snow .ql-picker.ql-font .ql-picker-item[data-value="inter"]::before { content: "Inter"; }
     .ql-snow .ql-picker.ql-font .ql-picker-label[data-value="arial"]::before { content: "Arial"; }
@@ -1369,7 +1365,7 @@
     }
 
     // ============================================================
-    // 8. РЕДАКТОР QUIL (С ДОБАВЛЕННЫМИ ТАБЛИЦАМИ И ИНТЕРВАЛАМИ)
+    // 8. РЕДАКТОР QUIL (С ИСПРАВЛЕННОЙ ИНИЦИАЛИЗАЦИЕЙ ТАБЛИЦ И ИНТЕРВАЛОВ)
     // ============================================================
     let quillEditor = null;
 
@@ -1464,25 +1460,28 @@
        }
        
        try {
-           // 1. Шрифты
+           // 1. Регистрация шрифтов
            var Font = Quill.import('attributors/class/font');
            Font.whitelist = ['inter', 'arial', 'georgia', 'times-new-roman'];
            Quill.register(Font, true);
 
-           // 2. Выравнивание
+           // 2. Регистрация выравнивания
            const Align = Quill.import('attributors/style/align');
            Quill.register(Align, true);
 
-           // 3. Межстрочный интервал (Line Height)
+           // 3. Регистрация межстрочного интервала
            const LineHeight = Quill.import('attributors/style/line-height');
            Quill.register(LineHeight, true);
 
-           // 4. Таблицы (Quill 2.0)
-           const Table = Quill.import('modules/table');
-           const TableManipulation = Quill.import('modules/table-manipulation');
-           Quill.register(Table, true);
-           Quill.register(TableManipulation, true);
+           // 4. Регистрация Таблиц (используя глобальный QuillTable из CDN)
+           // Безопасная проверка, чтобы не вызвать ошибку "in" operator
+           if (typeof QuillTable !== 'undefined') {
+               Quill.register('modules/table', QuillTable);
+           } else {
+               console.warn('QuillTable не загружен. Функции таблиц будут отключены.');
+           }
 
+           // 5. Конфигурация панели инструментов
            const toolbarConfig = [
                [{ 'font': ['inter', 'arial', 'georgia', 'times-new-roman'] }],
                [{ 'size': ['small', false, 'large', 'huge'] }],
@@ -1502,6 +1501,7 @@
                theme: 'snow'
            });
 
+           // 6. Обработчик изображений
            quillEditor.getModule('toolbar').addHandler('image', function() {
                const input = document.createElement('input');
                input.setAttribute('type', 'file');
@@ -1527,6 +1527,7 @@
                };
            });
 
+           // 7. Загрузка содержимого
            const node = findNode(data.sections, document.getElementById('modalOverlay').dataset.editId);
            if (node && node.content) {
                quillEditor.clipboard.dangerouslyPasteHTML(node.content);
