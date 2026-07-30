@@ -416,18 +416,6 @@
     .ql-snow .ql-picker.ql-size .ql-picker-item[data-value="huge"]::before { content: "Огромный"; }
     .ql-snow .ql-picker.ql-size .ql-picker-item[data-value="false"]::before { content: "Обычный"; }
     .ql-snow .ql-picker.ql-size .ql-picker-label::before { content: "Размер"; }
-    
-    /* ===== Стили для нового инструмента "Межстрочный интервал" ===== */
-    .ql-snow .ql-picker.ql-line-height .ql-picker-label::before,
-    .ql-snow .ql-picker.ql-line-height .ql-picker-item::before { content: attr(data-label); }
-    .ql-snow .ql-picker.ql-line-height .ql-picker-item[data-value="1"]::before { content: "1.0"; }
-    .ql-snow .ql-picker.ql-line-height .ql-picker-item[data-value="1.2"]::before { content: "1.2"; }
-    .ql-snow .ql-picker.ql-line-height .ql-picker-item[data-value="1.5"]::before { content: "1.5"; }
-    .ql-snow .ql-picker.ql-line-height .ql-picker-item[data-value="1.8"]::before { content: "1.8"; }
-    .ql-snow .ql-picker.ql-line-height .ql-picker-item[data-value="2"]::before { content: "2.0"; }
-    .ql-snow .ql-picker.ql-line-height .ql-picker-item[data-value="2.5"]::before { content: "2.5"; }
-    .ql-snow .ql-picker.ql-line-height .ql-picker-item[data-value="3"]::before { content: "3.0"; }
-    .ql-snow .ql-picker.ql-line-height .ql-picker-label::before { content: "Интервал"; }
 
     #confirmOverlay {
       position: fixed; inset: 0; background: rgba(0,0,0,0.5); backdrop-filter: blur(4px);
@@ -1366,7 +1354,7 @@
     }
 
     // ============================================================
-    // 8. РЕДАКТОР QUIL (С ДИНАМИЧЕСКОЙ ЗАГРУЗКОЙ ТАБЛИЦ И МЕЖСТРОЧНЫМ ИНТЕРВАЛОМ)
+    // 8. РЕДАКТОР QUIL (БЕЗ ОПАСНЫХ МОДУЛЕЙ ТАБЛИЦ И ИНТЕРВАЛОВ)
     // ============================================================
     let quillEditor = null;
 
@@ -1450,8 +1438,7 @@
       document.getElementById('modalSave').onclick = function() { saveModalEdit(document.getElementById('modalOverlay').dataset.editId); };
     }
     
-    // ИЗМЕНЕНИЕ: Делаем функцию async
-    async function initQuill() {
+    function initQuill() {
        const container = document.getElementById('editor-container');
        if (!container) return;
        
@@ -1471,41 +1458,16 @@
            const Align = Quill.import('attributors/style/align');
            Quill.register(Align, true);
 
-           // 3. ИСПРАВЛЕНИЕ: Динамический импорт таблиц для работы без ошибок 404
-           try {
-               // Жестко загружаем модуль из надежного источника
-               const QuillTableModule = await import('https://cdn.jsdelivr.net/npm/quill-table@2.0.1/dist/quill-table.js');
-               // В Quill 2 регистрация модуля делается именно так:
-               if (QuillTableModule && QuillTableModule.default) {
-                   Quill.register('modules/table', QuillTableModule.default);
-                   console.log('✅ QuillTable успешно зарегистрирован');
-               } else {
-                   console.warn('⚠️ QuillTable не загружен. Функции таблиц будут отключены.');
-               }
-           } catch (tableError) {
-               console.warn('⚠️ QuillTable не загружен. Функции таблиц будут отключены.', tableError);
-           }
-
-           // 4. ИСПРАВЛЕНИЕ: Правильная регистрация межстрочного интервала (Line Height)
-           const StyleAttributor = Quill.import('attributors/style');
-           const LineHeight = new StyleAttributor('line-height', 'line-height', {
-             scope: Quill.import('scope').INLINE,
-             whitelist: ['1', '1.2', '1.5', '1.8', '2', '2.5', '3']
-           });
-           Quill.register(LineHeight, true);
-
-           // 5. Конфигурация панели инструментов (Включая кнопку для межстрочного интервала)
+           // 3. Стандартная панель инструментов (БЕЗ таблиц и межстрочного интервала, чтобы редактор 100% работал)
            const toolbarConfig = [
                [{ 'font': ['inter', 'arial', 'georgia', 'times-new-roman'] }],
                [{ 'size': ['small', false, 'large', 'huge'] }],
-               [{ 'line-height': ['1', '1.2', '1.5', '1.8', '2', '2.5', '3'] }], // Междустрочный интервал
                [{ 'align': [] }],
                [{ 'color': [] }, { 'background': [] }],
                [{ header: [1, 2, 3, false] }],
                ['bold', 'italic', 'underline', 'strike'],
                [{ list: 'ordered'}, { list: 'bullet' }],
                ['link', 'image'],
-               [{ 'table': [] }], // Кнопка вставки таблицы
                ['clean']
            ];
 
@@ -1514,7 +1476,7 @@
                theme: 'snow'
            });
 
-           // 6. Обработчик изображений
+           // 4. Обработчик изображений
            quillEditor.getModule('toolbar').addHandler('image', function() {
                const input = document.createElement('input');
                input.setAttribute('type', 'file');
@@ -1540,7 +1502,7 @@
                };
            });
 
-           // 7. Загрузка содержимого
+           // 5. Загрузка содержимого
            const node = findNode(data.sections, document.getElementById('modalOverlay').dataset.editId);
            if (node && node.content) {
                quillEditor.clipboard.dangerouslyPasteHTML(node.content);
