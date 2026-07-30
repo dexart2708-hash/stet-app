@@ -1474,16 +1474,26 @@
            // 3. ИСПРАВЛЕННАЯ РЕГИСТРАЦИЯ МЕЖСТРОЧНОГО ИНТЕРВАЛА (Quill 2.0)
            // ============================================================
            try {
-               // В Quill 2.0 правильный способ получить Parchment - импортировать 'parchment' (без core/)
-               let Parchment = Quill.import('parchment');
-               let LineHeightStyle = new Parchment.Attributor.Style('line-height', 'line-height', {
-                   scope: Parchment.Scope.INLINE,
-                   whitelist: ['1', '1.2', '1.5', '1.8', '2', '2.5', '3']
-               });
-               Quill.register(LineHeightStyle, true);
-               console.log('✅ Межстрочный интервал успешно зарегистрирован.');
+               // Пытаемся зарегистрировать межстрочный интервал правильным способом для Quill 2.x
+               const LineHeight = Quill.import('attributors/style/line-height');
+               if (LineHeight) {
+                   Quill.register(LineHeight, true);
+                   console.log('✅ Межстрочный интервал успешно зарегистрирован.');
+               } else {
+                   // Fallback вариант через Parchment (если attributors не найден)
+                   let Parchment = Quill.import('parchment');
+                   if (Parchment && typeof Parchment.Attributor.Style === 'function') {
+                       // ВАЖНО: для line-height scope должен быть BLOCK, а не INLINE!
+                       let LineHeightStyle = new Parchment.Attributor.Style('line-height', 'line-height', {
+                           scope: Parchment.Scope.BLOCK,
+                           whitelist: ['1', '1.2', '1.5', '1.8', '2', '2.5', '3']
+                       });
+                       Quill.register(LineHeightStyle, true);
+                       console.log('✅ Межстрочный интервал зарегистрирован через Parchment.');
+                   }
+               }
            } catch (lineHeightError) {
-               console.warn('⚠️ Не удалось загрузить межстрочный интервал (не критично).', lineHeightError);
+               console.warn('⚠️ Не удалось загрузить межстрочный интервал.', lineHeightError);
            }
            // ============================================================
 
