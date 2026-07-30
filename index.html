@@ -417,7 +417,7 @@
     .ql-snow .ql-picker.ql-size .ql-picker-item[data-value="false"]::before { content: "Обычный"; }
     .ql-snow .ql-picker.ql-size .ql-picker-label::before { content: "Размер"; }
 
-    /* ===== Стили для нового инструмента "Межстрочный интервал" ===== */
+    /* ===== ИСПРАВЛЕННЫЕ СТИЛИ для "Интервал" ===== */
     .ql-snow .ql-picker.ql-line-height .ql-picker-label::before,
     .ql-snow .ql-picker.ql-line-height .ql-picker-item::before { content: attr(data-label); }
     .ql-snow .ql-picker.ql-line-height .ql-picker-item[data-value="1"]::before { content: "1.0"; }
@@ -1366,7 +1366,7 @@
     }
 
     // ============================================================
-    // 8. РЕДАКТОР QUIL (ИСПРАВЛЕННАЯ РЕГИСТРАЦИЯ ИНТЕРВАЛА И ТАБЛИЦ)
+    // 8. РЕДАКТОР QUIL (ПОЛНОСТЬЮ ИСПРАВЛЕНА РЕГИСТРАЦИЯ INTERVAL)
     // ============================================================
     let quillEditor = null;
 
@@ -1471,45 +1471,33 @@
            Quill.register(Align, true);
 
            // ============================================================
-           // 3. ИСПРАВЛЕННАЯ БЕЗОПАСНАЯ ЗАГРУЗКА МЕЖСТРОЧНОГО ИНТЕРВАЛА
+           // 3. ИСПРАВЛЕННАЯ РЕГИСТРАЦИЯ МЕЖСТРОЧНОГО ИНТЕРВАЛА (Quill 2.0)
            // ============================================================
            try {
-               // Используем Parchment вместо attributors/style для надежной регистрации в Quill 2.0
-               let Parchment = Quill.import('parchment');
-               let LineHeightAttributor = new Parchment.Attributor.Style('line-height', 'line-height', {
+               // Quill 2.0 использует 'core/parchment' вместо 'parchment'
+               let Parchment = Quill.import('core/parchment');
+               let LineHeightStyle = new Parchment.Attributor.Style('line-height', 'line-height', {
                    scope: Parchment.Scope.INLINE,
                    whitelist: ['1', '1.2', '1.5', '1.8', '2', '2.5', '3']
                });
-               Quill.register(LineHeightAttributor, true);
+               Quill.register(LineHeightStyle, true);
                console.log('✅ Межстрочный интервал успешно зарегистрирован.');
            } catch (lineHeightError) {
                console.warn('⚠️ Не удалось загрузить межстрочный интервал (не критично).', lineHeightError);
            }
-
            // ============================================================
-           // 4. БЕЗОПАСНАЯ ЗАГРУЗКА ТАБЛИЦ
-           // ============================================================
-           try {
-               const QuillTableModule = await import('https://cdn.jsdelivr.net/npm/quill-table@2.0.1/dist/quill-table.js');
-               const QuillTable = QuillTableModule.default || QuillTableModule;
-               Quill.register('modules/table', QuillTable);
-               console.log('✅ Таблицы успешно загружены!');
-           } catch (tableError) {
-               console.warn('⚠️ Модуль таблиц не загружен. Редактор будет работать без таблиц.', tableError);
-           }
 
-           // 5. Конфигурация панели инструментов
+           // 4. Конфигурация панели инструментов
            const toolbarConfig = [
                [{ 'font': ['inter', 'arial', 'georgia', 'times-new-roman'] }],
                [{ 'size': ['small', false, 'large', 'huge'] }],
-               [{ 'line-height': ['1', '1.2', '1.5', '1.8', '2', '2.5', '3'] }], // Интервал
+               [{ 'line-height': ['1', '1.2', '1.5', '1.8', '2', '2.5', '3'] }],
                [{ 'align': [] }],
                [{ 'color': [] }, { 'background': [] }],
                [{ header: [1, 2, 3, false] }],
                ['bold', 'italic', 'underline', 'strike'],
                [{ list: 'ordered'}, { list: 'bullet' }],
                ['link', 'image'],
-               [{ 'table': [] }],
                ['clean']
            ];
 
@@ -1518,7 +1506,7 @@
                theme: 'snow'
            });
 
-           // 6. Обработчик изображений
+           // 5. Обработчик изображений
            quillEditor.getModule('toolbar').addHandler('image', function() {
                const input = document.createElement('input');
                input.setAttribute('type', 'file');
@@ -1544,7 +1532,7 @@
                };
            });
 
-           // 7. Загрузка содержимого
+           // 6. Загрузка содержимого
            const node = findNode(data.sections, document.getElementById('modalOverlay').dataset.editId);
            if (node && node.content) {
                quillEditor.clipboard.dangerouslyPasteHTML(node.content);
