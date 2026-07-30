@@ -15,7 +15,7 @@
 
   <link href="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.snow.css" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/quill-table@2.0.1/dist/quill-table.js"></script>
+  <!-- Убираем статический тег quill-table, будем загружать через динамический импорт внутри JS -->
 
   <style>
     :root {
@@ -1355,7 +1355,7 @@
     }
 
     // ============================================================
-    // 8. РЕДАКТОР QUIL (ИСПРАВЛЕНА ОШИБКА LINE-HEIGHT)
+    // 8. РЕДАКТОР QUIL (С ДИНАМИЧЕСКОЙ ЗАГРУЗКОЙ ТАБЛИЦ И БЕЗ ОШИБОК)
     // ============================================================
     let quillEditor = null;
 
@@ -1439,7 +1439,8 @@
       document.getElementById('modalSave').onclick = function() { saveModalEdit(document.getElementById('modalOverlay').dataset.editId); };
     }
     
-    function initQuill() {
+    // Делаем функцию async для динамической загрузки таблиц
+    async function initQuill() {
        const container = document.getElementById('editor-container');
        if (!container) return;
        
@@ -1459,15 +1460,17 @@
            const Align = Quill.import('attributors/style/align');
            Quill.register(Align, true);
 
-           // 3. Регистрация Таблиц (используя глобальный QuillTable из CDN)
-           // Безопасная проверка, чтобы не вызвать ошибку "in" operator
-           if (typeof QuillTable !== 'undefined') {
+           // 3. Динамический импорт таблиц вместо тега <script>
+           let tableModule = null;
+           try {
+               tableModule = await import('https://cdn.jsdelivr.net/npm/quill-table@2.0.1/dist/quill-table.js');
+               const QuillTable = tableModule.default || tableModule;
                Quill.register('modules/table', QuillTable);
-           } else {
-               console.warn('QuillTable не загружен. Функции таблиц будут отключены.');
+           } catch (tableError) {
+               console.warn('QuillTable не загружен. Функции таблиц будут отключены.', tableError);
            }
 
-           // 4. Конфигурация панели инструментов (убрал line-height)
+           // 4. Конфигурация панели инструментов
            const toolbarConfig = [
                [{ 'font': ['inter', 'arial', 'georgia', 'times-new-roman'] }],
                [{ 'size': ['small', false, 'large', 'huge'] }],
@@ -1477,7 +1480,8 @@
                ['bold', 'italic', 'underline', 'strike'],
                [{ list: 'ordered'}, { list: 'bullet' }],
                ['link', 'image'],
-               [{ 'table': [] }], // Кнопка вставки таблицы
+               // Кнопку оставляем, она будет работать, если модуль загрузился, и просто скроется, если нет
+               [{ 'table': [] }], 
                ['clean']
            ];
 
