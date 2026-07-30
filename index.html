@@ -1471,29 +1471,26 @@
            Quill.register(Align, true);
 
            // ============================================================
-           // 3. ИСПРАВЛЕННАЯ РЕГИСТРАЦИЯ МЕЖСТРОЧНОГО ИНТЕРВАЛА (Quill 2.0)
+           // 3. ИСПРАВЛЕННАЯ РЕГИСТРАЦИЯ МЕЖСТРОЧНОГО ИНТЕРВАЛА (Quill 2.0 CDN)
            // ============================================================
            try {
-               // Пытаемся зарегистрировать межстрочный интервал правильным способом для Quill 2.x
-               const LineHeight = Quill.import('attributors/style/line-height');
-               if (LineHeight) {
-                   Quill.register(LineHeight, true);
-                   console.log('✅ Межстрочный интервал успешно зарегистрирован.');
+               // В версии CDN Quill 2.0.3 модуль line-height убран из базовой сборки.
+               // Инициализируем свой атрибьютор напрямую через Parchment
+               let Parchment = Quill.import('parchment');
+               if (Parchment && Parchment.Attributor) {
+                   let LineHeightAttributor = new Parchment.Attributor.Style('line-height', 'line-height', {
+                       scope: Parchment.Scope.BLOCK, // Используем BLOCK, чтобы интервал применялся к абзацам
+                       whitelist: ['1', '1.2', '1.5', '1.8', '2', '2.5', '3']
+                   });
+                   
+                   // Регистрируем атрибьютор под ключом, который распознает панель инструментов Quill
+                   Quill.register('attributors/style/line-height', LineHeightAttributor, true);
+                   console.log('✅ Межстрочный интервал зарегистрирован через Parchment (для CDN).');
                } else {
-                   // Fallback вариант через Parchment (если attributors не найден)
-                   let Parchment = Quill.import('parchment');
-                   if (Parchment && typeof Parchment.Attributor.Style === 'function') {
-                       // ВАЖНО: для line-height scope должен быть BLOCK, а не INLINE!
-                       let LineHeightStyle = new Parchment.Attributor.Style('line-height', 'line-height', {
-                           scope: Parchment.Scope.BLOCK,
-                           whitelist: ['1', '1.2', '1.5', '1.8', '2', '2.5', '3']
-                       });
-                       Quill.register(LineHeightStyle, true);
-                       console.log('✅ Межстрочный интервал зарегистрирован через Parchment.');
-                   }
+                   console.warn('⚠️ Parchment не найден, межстрочный интервал не зарегистрирован.');
                }
-           } catch (lineHeightError) {
-               console.warn('⚠️ Не удалось загрузить межстрочный интервал.', lineHeightError);
+           } catch (e) {
+               console.warn('⚠️ Ошибка регистрации line-height через Parchment.', e);
            }
            // ============================================================
 
