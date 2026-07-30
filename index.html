@@ -1366,7 +1366,7 @@
     }
 
     // ============================================================
-    // 8. РЕДАКТОР QUIL (ПОЛНОСТЬЮ ИСПРАВЛЕНА РЕГИСТРАЦИЯ INTERVAL)
+    // 8. РЕДАКТОР QUIL (ИСПРАВЛЕНА РЕГИСТРАЦИЯ LINE-HEIGHT)
     // ============================================================
     let quillEditor = null;
 
@@ -1474,8 +1474,8 @@
            // 3. ИСПРАВЛЕННАЯ РЕГИСТРАЦИЯ МЕЖСТРОЧНОГО ИНТЕРВАЛА (Quill 2.0)
            // ============================================================
            try {
-               // Quill 2.0 использует 'core/parchment' вместо 'parchment'
-               let Parchment = Quill.import('core/parchment');
+               // В Quill 2.0 правильный способ получить Parchment - импортировать 'parchment' (без core/)
+               let Parchment = Quill.import('parchment');
                let LineHeightStyle = new Parchment.Attributor.Style('line-height', 'line-height', {
                    scope: Parchment.Scope.INLINE,
                    whitelist: ['1', '1.2', '1.5', '1.8', '2', '2.5', '3']
