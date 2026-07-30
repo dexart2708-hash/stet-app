@@ -1366,7 +1366,7 @@
     }
 
     // ============================================================
-    // 8. РЕДАКТОР QUIL (С БЕЗОПАСНОЙ ЗАГРУЗКОЙ ТАБЛИЦ И ИНТЕРВАЛАМИ)
+    // 8. РЕДАКТОР QUIL (ИСПРАВЛЕННАЯ РЕГИСТРАЦИЯ ИНТЕРВАЛА И ТАБЛИЦ)
     // ============================================================
     let quillEditor = null;
 
@@ -1450,7 +1450,6 @@
       document.getElementById('modalSave').onclick = function() { saveModalEdit(document.getElementById('modalOverlay').dataset.editId); };
     }
     
-    // ИЗМЕНЕНИЕ: Функция async для динамической загрузки
     async function initQuill() {
        const container = document.getElementById('editor-container');
        if (!container) return;
@@ -1471,20 +1470,25 @@
            const Align = Quill.import('attributors/style/align');
            Quill.register(Align, true);
 
-           // 3. БЕЗОПАСНАЯ ЗАГРУЗКА МЕЖСТРОЧНОГО ИНТЕРВАЛА (Line Height)
+           // ============================================================
+           // 3. ИСПРАВЛЕННАЯ БЕЗОПАСНАЯ ЗАГРУЗКА МЕЖСТРОЧНОГО ИНТЕРВАЛА
+           // ============================================================
            try {
-               const StyleAttributor = Quill.import('attributors/style');
-               const LineHeight = new StyleAttributor('line-height', 'line-height', {
-                   scope: Quill.import('scope').INLINE,
+               // Используем Parchment вместо attributors/style для надежной регистрации в Quill 2.0
+               let Parchment = Quill.import('parchment');
+               let LineHeightAttributor = new Parchment.Attributor.Style('line-height', 'line-height', {
+                   scope: Parchment.Scope.INLINE,
                    whitelist: ['1', '1.2', '1.5', '1.8', '2', '2.5', '3']
                });
-               Quill.register(LineHeight, true);
-               console.log('✅ Межстрочный интервал зарегистрирован.');
+               Quill.register(LineHeightAttributor, true);
+               console.log('✅ Межстрочный интервал успешно зарегистрирован.');
            } catch (lineHeightError) {
                console.warn('⚠️ Не удалось загрузить межстрочный интервал (не критично).', lineHeightError);
            }
 
-           // 4. БЕЗОПАСНАЯ ЗАГРУЗКА ТАБЛИЦ (динамический импорт через await)
+           // ============================================================
+           // 4. БЕЗОПАСНАЯ ЗАГРУЗКА ТАБЛИЦ
+           // ============================================================
            try {
                const QuillTableModule = await import('https://cdn.jsdelivr.net/npm/quill-table@2.0.1/dist/quill-table.js');
                const QuillTable = QuillTableModule.default || QuillTableModule;
@@ -1498,7 +1502,7 @@
            const toolbarConfig = [
                [{ 'font': ['inter', 'arial', 'georgia', 'times-new-roman'] }],
                [{ 'size': ['small', false, 'large', 'huge'] }],
-               [{ 'line-height': ['1', '1.2', '1.5', '1.8', '2', '2.5', '3'] }],
+               [{ 'line-height': ['1', '1.2', '1.5', '1.8', '2', '2.5', '3'] }], // Интервал
                [{ 'align': [] }],
                [{ 'color': [] }, { 'background': [] }],
                [{ header: [1, 2, 3, false] }],
