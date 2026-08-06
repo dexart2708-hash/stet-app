@@ -16,6 +16,7 @@
   <link href="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.snow.css" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.js"></script>
   
+  <!-- Библиотеки для импорта файлов -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
@@ -420,17 +421,6 @@
     .ql-snow .ql-picker.ql-size .ql-picker-item[data-value="false"]::before { content: "Обычный"; }
     .ql-snow .ql-picker.ql-size .ql-picker-label::before { content: "Размер"; }
 
-    .ql-snow .ql-picker.ql-line-height .ql-picker-label::before,
-    .ql-snow .ql-picker.ql-line-height .ql-picker-item::before { content: attr(data-label); }
-    .ql-snow .ql-picker.ql-line-height .ql-picker-item[data-value="1"]::before { content: "1.0"; }
-    .ql-snow .ql-picker.ql-line-height .ql-picker-item[data-value="1.2"]::before { content: "1.2"; }
-    .ql-snow .ql-picker.ql-line-height .ql-picker-item[data-value="1.5"]::before { content: "1.5"; }
-    .ql-snow .ql-picker.ql-line-height .ql-picker-item[data-value="1.8"]::before { content: "1.8"; }
-    .ql-snow .ql-picker.ql-line-height .ql-picker-item[data-value="2"]::before { content: "2.0"; }
-    .ql-snow .ql-picker.ql-line-height .ql-picker-item[data-value="2.5"]::before { content: "2.5"; }
-    .ql-snow .ql-picker.ql-line-height .ql-picker-item[data-value="3"]::before { content: "3.0"; }
-    .ql-snow .ql-picker.ql-line-height .ql-picker-label::before { content: "Интервал"; }
-
     #confirmOverlay {
       position: fixed; inset: 0; background: rgba(0,0,0,0.5); backdrop-filter: blur(4px);
       display: none; align-items: center; justify-content: center; z-index: 1000; padding: 10px;
@@ -469,10 +459,10 @@
     .toast-msg.success { background: #10b981; }
     .toast-msg.error { background: #e74c3c; }
 
-    /* Стили для области загрузки файлов */
+    /* Стили для кнопки загрузки документов */
     #file-upload-area {
       margin-bottom: 10px;
-      display: flex; /* Видно по умолчанию */
+      display: flex; /* Отображается по умолчанию */
       gap: 10px;
       align-items: center;
     }
@@ -571,11 +561,13 @@
         </div>
         <div class="field" id="editor-field">
           <label>Содержимое</label>
-          <!-- КНОПКА ЗАГРУЗКИ ФАЙЛОВ (ПОСТОЯННО В HTML) -->
+          
+          <!-- КНОПКА ЗАГРУЗКИ ФАЙЛОВ -->
           <div id="file-upload-area">
             <button id="uploadDocBtn"><i class="fas fa-upload"></i> Загрузить Word/Excel</button>
             <span style="font-size: 0.75rem; color: #888;">(.docx, .xlsx, до 10 МБ)</span>
           </div>
+          
           <div id="editor-container"></div>
         </div>
       </div>
@@ -603,7 +595,7 @@
 
   <script>
     // ============================================================
-    // 0. TOAST И MODAL CONFIRM (Вспомогательные функции)
+    // 0. TOAST И MODAL CONFIRM
     // ============================================================
     function showToast(message, isSuccess = true) {
         const container = document.getElementById('toast-container');
@@ -1395,7 +1387,7 @@
     }
 
     // ============================================================
-    // 8. РЕДАКТОР QUIL (ИСПРАВЛЕНА РЕГИСТРАЦИЯ LINE-HEIGHT И ДОБАВЛЕНА ФИЧА)
+    // 8. РЕДАКТОР QUIL (БЕЗ НАСТРОЕК МЕЖСТРОЧНОГО ИНТЕРВАЛА)
     // ============================================================
     let quillEditor = null;
 
@@ -1459,22 +1451,22 @@
         const t = this.value;
         if (t === 'text') {
           editorField.style.display = 'block';
-          fileUploadArea.style.display = 'flex'; // Показываем область с кнопкой
+          fileUploadArea.style.display = 'flex';
           setTimeout(() => initQuill(), 150);
         } else {
           editorField.style.display = 'none';
-          fileUploadArea.style.display = 'none'; // Скрываем область с кнопкой
+          fileUploadArea.style.display = 'none';
         }
       };
 
       const type = document.getElementById('editType').value;
       if (type === 'text') {
         editorField.style.display = 'block';
-        fileUploadArea.style.display = 'flex'; // Показываем область с кнопкой
+        fileUploadArea.style.display = 'flex';
         setTimeout(() => initQuill(), 150);
       } else {
         editorField.style.display = 'none';
-        fileUploadArea.style.display = 'none'; // Скрываем область с кнопкой
+        fileUploadArea.style.display = 'none';
       }
 
       overlay.classList.add('active');
@@ -1504,29 +1496,10 @@
            const Align = Quill.import('attributors/style/align');
            Quill.register(Align, true);
 
-           // ============================================================
-           // 3. ИСПРАВЛЕННАЯ РЕГИСТРАЦИЯ МЕЖСТРОЧНОГО ИНТЕРВАЛА (Quill 2.0 CDN)
-           // ============================================================
-           try {
-               let Parchment = Quill.import('parchment');
-               if (Parchment && Parchment.Attributor) {
-                   let LineHeightAttributor = new Parchment.Attributor.Style('line-height', 'line-height', {
-                       scope: Parchment.Scope.BLOCK,
-                       whitelist: ['1', '1.2', '1.5', '1.8', '2', '2.5', '3']
-                   });
-                   Quill.register('attributors/style/line-height', LineHeightAttributor, true);
-                   console.log('✅ Межстрочный интервал зарегистрирован через Parchment (для CDN).');
-               }
-           } catch (e) {
-               console.warn('⚠️ Ошибка регистрации line-height через Parchment.', e);
-           }
-           // ============================================================
-
-           // 4. Конфигурация панели инструментов
+           // 3. Конфигурация панели инструментов (БЕЗ line-height!)
            const toolbarConfig = [
                [{ 'font': ['inter', 'arial', 'georgia', 'times-new-roman'] }],
                [{ 'size': ['small', false, 'large', 'huge'] }],
-               [{ 'line-height': ['1', '1.2', '1.5', '1.8', '2', '2.5', '3'] }],
                [{ 'align': [] }],
                [{ 'color': [] }, { 'background': [] }],
                [{ header: [1, 2, 3, false] }],
@@ -1541,7 +1514,7 @@
                theme: 'snow'
            });
 
-           // 5. Обработчик изображений
+           // 4. Обработчик изображений
            quillEditor.getModule('toolbar').addHandler('image', function() {
                const input = document.createElement('input');
                input.setAttribute('type', 'file');
@@ -1567,7 +1540,7 @@
                };
            });
 
-           // 6. Загрузка содержимого
+           // 5. Загрузка содержимого
            const node = findNode(data.sections, document.getElementById('modalOverlay').dataset.editId);
            if (node && node.content) {
                quillEditor.clipboard.dangerouslyPasteHTML(node.content);
@@ -1700,11 +1673,15 @@
     }
 
     // ============================================================
-    // 11. ОБРАБОТЧИК ЗАГРУЗКИ WORD / EXCEL (ОТДЕЛЬНАЯ ФУНКЦИЯ)
+    // 11. ОБРАБОТЧИК ЗАГРУЗКИ WORD / EXCEL
     // ============================================================
     function initFileUploadHandler() {
         const uploadBtn = document.getElementById('uploadDocBtn');
-        if (!uploadBtn) return;
+        if (!uploadBtn) {
+            console.warn("⚠️ Кнопка uploadDocBtn не найдена!");
+            return;
+        }
+        console.log("✅ Кнопка загрузки найдена, навешиваем событие.");
 
         uploadBtn.addEventListener('click', function() {
             if (!quillEditor) {
@@ -1721,7 +1698,6 @@
                 const file = e.target.files[0];
                 if (!file) return;
 
-                // Ограничение размера файла 10МБ
                 if (file.size > 10 * 1024 * 1024) {
                     showToast("Файл слишком большой. Максимальный размер 10 МБ.", false);
                     return;
@@ -1735,14 +1711,12 @@
                         let htmlContent = '';
 
                         if (file.name.endsWith('.docx')) {
-                            // Парсим Word через Mammoth
                             const result = await mammoth.convertToHtml({ 
                                 arrayBuffer: buffer, 
                                 convertImage: mammoth.images.imgElement 
                             });
                             htmlContent = result.value;
                         } else if (file.name.endsWith('.xlsx')) {
-                            // Парсим Excel через XLSX
                             const workbook = XLSX.read(buffer, { type: 'array' });
                             const firstSheetName = workbook.SheetNames[0];
                             const worksheet = workbook.Sheets[firstSheetName];
@@ -1752,7 +1726,6 @@
                             return;
                         }
 
-                        // Заменяем содержимое редактора на HTML из файла
                         quillEditor.setContents([]);
                         quillEditor.clipboard.dangerouslyPasteHTML(htmlContent);
                         showToast("Документ успешно загружен и преобразован!");
@@ -1761,13 +1734,13 @@
                         showToast("Ошибка при чтении файла: " + err.message, false);
                     }
                 };
-                e.target.value = ''; // Сброс поля input
+                e.target.value = '';
             };
         });
     }
 
     // ============================================================
-    // 12. ЗАПУСК ПРИЛОЖЕНИЯ (ВСЕ В ОДНОМ DOMContentLoaded)
+    // 12. ЗАПУСК ПРИЛОЖЕНИЯ
     // ============================================================
     document.addEventListener('DOMContentLoaded', function() {
       const savedTheme = localStorage.getItem('hotelChecklistTheme') || 'default';
@@ -1828,7 +1801,6 @@
       // Инициализация кнопки загрузки файлов
       initFileUploadHandler();
 
-      // Запуск приложения
       initData();
     });
   </script>
