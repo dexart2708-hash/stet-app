@@ -10,13 +10,8 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
   
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
-
   <link href="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.snow.css" rel="stylesheet">
-  <script src="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.js"></script>
   
-  <!-- Библиотеки для импорта файлов -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
@@ -459,10 +454,10 @@
     .toast-msg.success { background: #10b981; }
     .toast-msg.error { background: #e74c3c; }
 
-    /* Стили для кнопки загрузки документов */
+    /* Стили для области загрузки */
     #file-upload-area {
       margin-bottom: 10px;
-      display: flex; /* Отображается по умолчанию */
+      display: flex; /* Видна по умолчанию, скрывается через JS */
       gap: 10px;
       align-items: center;
     }
@@ -561,13 +556,11 @@
         </div>
         <div class="field" id="editor-field">
           <label>Содержимое</label>
-          
-          <!-- КНОПКА ЗАГРУЗКИ ФАЙЛОВ -->
+          <!-- КНОПКА ЗАГРУЗКИ ФАЙЛОВ (ВИДНА ПО УМОЛЧАНИЮ) -->
           <div id="file-upload-area">
             <button id="uploadDocBtn"><i class="fas fa-upload"></i> Загрузить Word/Excel</button>
             <span style="font-size: 0.75rem; color: #888;">(.docx, .xlsx, до 10 МБ)</span>
           </div>
-          
           <div id="editor-container"></div>
         </div>
       </div>
@@ -648,7 +641,7 @@
     }
 
     // ============================================================
-    // 1. FIREBASE
+    // 1. FIREBASE И ДАННЫЕ
     // ============================================================
     const firebaseConfig = {
       apiKey: "AIzaSyDdm0kaIesCu4CBennxPVoPhXwyAyAiwIg",
@@ -813,7 +806,7 @@
     }
 
     // ============================================================
-    // 2. РЕНДЕРИНГ ДЕРЕВА (ИСПРАВЛЕН КЛИК ПО ПАПКЕ)
+    // 2. РЕНДЕРИНГ ДЕРЕВА
     // ============================================================
     function renderTree() {
       const container = document.getElementById('treeContainer');
@@ -1017,7 +1010,7 @@
     }
 
     // ============================================================
-    // 4. РЕНДЕРИНГ КОНТЕНТА (ХЛЕБНЫЕ КРОШКИ + БЕЗ МОРГАНИЯ)
+    // 4. РЕНДЕРИНГ КОНТЕНТА
     // ============================================================
     function renderContent(id) {
       const panel = document.getElementById('contentPanel');
@@ -1333,7 +1326,7 @@
     }
 
     // ============================================================
-    // 7. ФУНКЦИИ ЭКСПОРТА / ИМПОРТА (заменен alert на toast)
+    // 7. ФУНКЦИИ ЭКСПОРТА / ИМПОРТА
     // ============================================================
     function exportData() {
       const json = JSON.stringify(data, null, 2);
@@ -1387,7 +1380,7 @@
     }
 
     // ============================================================
-    // 8. РЕДАКТОР QUIL (БЕЗ НАСТРОЕК МЕЖСТРОЧНОГО ИНТЕРВАЛА)
+    // 8. РЕДАКТОР QUIL (ПРОВЕРКА НА ЗАГРУЗКУ)
     // ============================================================
     let quillEditor = null;
 
@@ -1486,17 +1479,28 @@
            toolbarContainer.remove();
        }
        
+       // 0. ПРОВЕРКА: если библиотека Quill не загрузилась (из-за ошибки CDN), не падаем.
+       if (typeof Quill === 'undefined') {
+           container.innerHTML = `<p style="color:#e74c3c;padding:20px;text-align:center;">❌ Не удалось загрузить визуальный редактор. Проверьте подключение к интернету и обновите страницу (Ctrl+F5).</p>`;
+           console.error("Ошибка: Библиотека Quill не найдена. Проверьте загрузку CDN.");
+           return;
+       }
+       
        try {
            // 1. Регистрация шрифтов
            var Font = Quill.import('attributors/class/font');
-           Font.whitelist = ['inter', 'arial', 'georgia', 'times-new-roman'];
-           Quill.register(Font, true);
+           if (Font) {
+             Font.whitelist = ['inter', 'arial', 'georgia', 'times-new-roman'];
+             Quill.register(Font, true);
+           }
 
            // 2. Регистрация выравнивания
            const Align = Quill.import('attributors/style/align');
-           Quill.register(Align, true);
+           if (Align) {
+             Quill.register(Align, true);
+           }
 
-           // 3. Конфигурация панели инструментов (БЕЗ line-height!)
+           // 3. Панель инструментов (БЕЗ line-height)
            const toolbarConfig = [
                [{ 'font': ['inter', 'arial', 'georgia', 'times-new-roman'] }],
                [{ 'size': ['small', false, 'large', 'huge'] }],
@@ -1549,7 +1553,7 @@
            }
        } catch (e) {
            console.error("Ошибка создания Quill:", e);
-           container.innerHTML = `<p style="color:#e74c3c;padding:20px;">Не удалось загрузить визуальный редактор. Проверьте подключение к интернету.</p>`;
+           container.innerHTML = `<p style="color:#e74c3c;padding:20px;text-align:center;">❌ Ошибка инициализации редактора: ${e.message}</p>`;
        }
     }
 
@@ -1617,7 +1621,7 @@
     }
 
     // ============================================================
-    // 9. УДАЛЕНИЕ РАЗДЕЛА (с новым модальным окном)
+    // 9. УДАЛЕНИЕ РАЗДЕЛА
     // ============================================================
     async function deleteSection(id) {
       if (!isAdmin) return;
@@ -1678,14 +1682,13 @@
     function initFileUploadHandler() {
         const uploadBtn = document.getElementById('uploadDocBtn');
         if (!uploadBtn) {
-            console.warn("⚠️ Кнопка uploadDocBtn не найдена!");
+            console.log("⚠️ Кнопка uploadDocBtn не найдена (возможно, ошибка загрузки DOM).");
             return;
         }
-        console.log("✅ Кнопка загрузки найдена, навешиваем событие.");
 
         uploadBtn.addEventListener('click', function() {
             if (!quillEditor) {
-                showToast("Редактор еще загружается. Подождите пару секунд.", false);
+                showToast("Редактор еще загружается или недоступен. Подождите пару секунд.", false);
                 return;
             }
 
@@ -1798,9 +1801,10 @@
         });
       }
 
-      // Инициализация кнопки загрузки файлов
+      // Инициализация кнопки загрузки
       initFileUploadHandler();
 
+      // Запуск
       initData();
     });
   </script>
