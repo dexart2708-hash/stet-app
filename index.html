@@ -16,7 +16,6 @@
   <link href="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.snow.css" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.js"></script>
   
-  <!-- Библиотеки для импорта документов -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
@@ -564,7 +563,7 @@
           <!-- КНОПКА ЗАГРУЗКИ ФАЙЛОВ -->
           <div id="file-upload-area">
             <button id="uploadDocBtn"><i class="fas fa-upload"></i> Загрузить Word/Excel</button>
-            <span style="font-size: 0.75rem; color: #888;">(.docx, .xlsx, до 10 МБ)</span>
+            <span style="font-size: 0.75rem; color: #888;">(.doc, .docx, .xls, .xlsx, до 10 МБ)</span>
           </div>
           <div id="editor-container"></div>
         </div>
@@ -1385,7 +1384,7 @@
     }
 
     // ============================================================
-    // 8. РЕДАКТОР QUIL (БЕЗ ОШИБОК, БЕЗ МЕЖСТРОЧНОГО ИНТЕРВАЛА)
+    // 8. РЕДАКТОР QUIL
     // ============================================================
     let quillEditor = null;
 
@@ -1449,22 +1448,22 @@
         const t = this.value;
         if (t === 'text') {
           editorField.style.display = 'block';
-          fileUploadArea.style.display = 'flex'; // ПОКАЗЫВАЕМ КНОПКУ
+          fileUploadArea.style.display = 'flex';
           setTimeout(() => initQuill(), 150);
         } else {
           editorField.style.display = 'none';
-          fileUploadArea.style.display = 'none'; // СКРЫВАЕМ КНОПКУ
+          fileUploadArea.style.display = 'none';
         }
       };
 
       const type = document.getElementById('editType').value;
       if (type === 'text') {
         editorField.style.display = 'block';
-        fileUploadArea.style.display = 'flex'; // ПОКАЗЫВАЕМ КНОПКУ
+        fileUploadArea.style.display = 'flex';
         setTimeout(() => initQuill(), 150);
       } else {
         editorField.style.display = 'none';
-        fileUploadArea.style.display = 'none'; // СКРЫВАЕМ КНОПКУ
+        fileUploadArea.style.display = 'none';
       }
 
       overlay.classList.add('active');
@@ -1484,28 +1483,24 @@
            toolbarContainer.remove();
        }
        
-       // 0. ПРОВЕРКА: если библиотека Quill не загрузилась (из-за ошибки CDN), не падаем.
        if (typeof Quill === 'undefined') {
            container.innerHTML = `<p style="color:#e74c3c;padding:20px;text-align:center;">❌ Не удалось загрузить визуальный редактор. Проверьте подключение к интернету и обновите страницу (Ctrl+F5).</p>`;
-           console.error("Ошибка: Библиотека Quill не найдена. Проверьте загрузку CDN.");
+           console.error("Ошибка: Библиотека Quill не найдена.");
            return;
        }
        
        try {
-           // 1. Регистрация шрифтов
            var Font = Quill.import('attributors/class/font');
            if (Font) {
              Font.whitelist = ['inter', 'arial', 'georgia', 'times-new-roman'];
              Quill.register(Font, true);
            }
 
-           // 2. Регистрация выравнивания
            const Align = Quill.import('attributors/style/align');
            if (Align) {
              Quill.register(Align, true);
            }
 
-           // 3. Панель инструментов (ПОЛНОСТЬЮ УБРАН line-height)
            const toolbarConfig = [
                [{ 'font': ['inter', 'arial', 'georgia', 'times-new-roman'] }],
                [{ 'size': ['small', false, 'large', 'huge'] }],
@@ -1523,7 +1518,6 @@
                theme: 'snow'
            });
 
-           // 4. Обработчик изображений
            quillEditor.getModule('toolbar').addHandler('image', function() {
                const input = document.createElement('input');
                input.setAttribute('type', 'file');
@@ -1549,7 +1543,6 @@
                };
            });
 
-           // 5. Загрузка содержимого
            const node = findNode(data.sections, document.getElementById('modalOverlay').dataset.editId);
            if (node && node.content) {
                quillEditor.clipboard.dangerouslyPasteHTML(node.content);
@@ -1682,7 +1675,7 @@
     }
 
     // ============================================================
-    // 11. ОБРАБОТЧИК ЗАГРУЗКИ WORD / EXCEL
+    // 11. ОБРАБОТЧИК ЗАГРУЗКИ WORD / EXCEL (С ПОДДЕРЖКОЙ СТАРЫХ ФОРМАТОВ)
     // ============================================================
     function initFileUploadHandler() {
         const uploadBtn = document.getElementById('uploadDocBtn');
@@ -1695,8 +1688,9 @@
             }
 
             const input = document.createElement('input');
+            // Добавлена поддержка старых форматов .doc и .xls
             input.type = 'file';
-            input.accept = '.docx,.xlsx';
+            input.accept = '.doc,.docx,.xls,.xlsx';
             input.click();
 
             input.onchange = async function(e) {
@@ -1714,20 +1708,36 @@
                     try {
                         const buffer = ev.target.result;
                         let htmlContent = '';
+                        const fileName = file.name.toLowerCase();
 
-                        if (file.name.endsWith('.docx')) {
-                            const result = await mammoth.convertToHtml({ 
-                                arrayBuffer: buffer, 
-                                convertImage: mammoth.images.imgElement 
-                            });
-                            htmlContent = result.value;
-                        } else if (file.name.endsWith('.xlsx')) {
-                            const workbook = XLSX.read(buffer, { type: 'array' });
-                            const firstSheetName = workbook.SheetNames[0];
-                            const worksheet = workbook.Sheets[firstSheetName];
-                            htmlContent = XLSX.utils.sheet_to_html(worksheet);
+                        // Обработка Word (как .docx, так и .doc)
+                        if (fileName.endsWith('.docx') || fileName.endsWith('.doc')) {
+                            try {
+                                const result = await mammoth.convertToHtml({ 
+                                    arrayBuffer: buffer, 
+                                    convertImage: mammoth.images.imgElement 
+                                });
+                                htmlContent = result.value;
+                            } catch (err) {
+                                console.error(err);
+                                showToast("Не удалось прочитать файл .doc. Возможно, он поврежден. Попробуйте сохранить его как .docx в Word.", false);
+                                return;
+                            }
+                        } 
+                        // Обработка Excel (как .xlsx, так и .xls)
+                        else if (fileName.endsWith('.xlsx') || fileName.endsWith('.xls')) {
+                            try {
+                                const workbook = XLSX.read(buffer, { type: 'array' });
+                                const firstSheetName = workbook.SheetNames[0];
+                                const worksheet = workbook.Sheets[firstSheetName];
+                                htmlContent = XLSX.utils.sheet_to_html(worksheet);
+                            } catch (err) {
+                                console.error(err);
+                                showToast("Не удалось прочитать файл Excel. Проверьте его целостность.", false);
+                                return;
+                            }
                         } else {
-                            showToast("Неподдерживаемый формат файла. Загрузите .docx или .xlsx", false);
+                            showToast("Неподдерживаемый формат файла. Загрузите .doc, .docx, .xls или .xlsx", false);
                             return;
                         }
 
@@ -1803,9 +1813,7 @@
         });
       }
 
-      // Инициализация кнопки загрузки
       initFileUploadHandler();
-
       initData();
     });
   </script>
