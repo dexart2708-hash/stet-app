@@ -10,8 +10,13 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
   
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+
   <link href="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.snow.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.js"></script>
   
+  <!-- Библиотеки для импорта документов -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
@@ -457,7 +462,7 @@
     /* Стили для области загрузки */
     #file-upload-area {
       margin-bottom: 10px;
-      display: flex; /* Видна по умолчанию, скрывается через JS */
+      display: flex;
       gap: 10px;
       align-items: center;
     }
@@ -556,7 +561,7 @@
         </div>
         <div class="field" id="editor-field">
           <label>Содержимое</label>
-          <!-- КНОПКА ЗАГРУЗКИ ФАЙЛОВ (ВИДНА ПО УМОЛЧАНИЮ) -->
+          <!-- КНОПКА ЗАГРУЗКИ ФАЙЛОВ -->
           <div id="file-upload-area">
             <button id="uploadDocBtn"><i class="fas fa-upload"></i> Загрузить Word/Excel</button>
             <span style="font-size: 0.75rem; color: #888;">(.docx, .xlsx, до 10 МБ)</span>
@@ -641,7 +646,7 @@
     }
 
     // ============================================================
-    // 1. FIREBASE И ДАННЫЕ
+    // 1. FIREBASE
     // ============================================================
     const firebaseConfig = {
       apiKey: "AIzaSyDdm0kaIesCu4CBennxPVoPhXwyAyAiwIg",
@@ -1380,7 +1385,7 @@
     }
 
     // ============================================================
-    // 8. РЕДАКТОР QUIL (ПРОВЕРКА НА ЗАГРУЗКУ)
+    // 8. РЕДАКТОР QUIL (БЕЗ ОШИБОК, БЕЗ МЕЖСТРОЧНОГО ИНТЕРВАЛА)
     // ============================================================
     let quillEditor = null;
 
@@ -1444,22 +1449,22 @@
         const t = this.value;
         if (t === 'text') {
           editorField.style.display = 'block';
-          fileUploadArea.style.display = 'flex';
+          fileUploadArea.style.display = 'flex'; // ПОКАЗЫВАЕМ КНОПКУ
           setTimeout(() => initQuill(), 150);
         } else {
           editorField.style.display = 'none';
-          fileUploadArea.style.display = 'none';
+          fileUploadArea.style.display = 'none'; // СКРЫВАЕМ КНОПКУ
         }
       };
 
       const type = document.getElementById('editType').value;
       if (type === 'text') {
         editorField.style.display = 'block';
-        fileUploadArea.style.display = 'flex';
+        fileUploadArea.style.display = 'flex'; // ПОКАЗЫВАЕМ КНОПКУ
         setTimeout(() => initQuill(), 150);
       } else {
         editorField.style.display = 'none';
-        fileUploadArea.style.display = 'none';
+        fileUploadArea.style.display = 'none'; // СКРЫВАЕМ КНОПКУ
       }
 
       overlay.classList.add('active');
@@ -1500,7 +1505,7 @@
              Quill.register(Align, true);
            }
 
-           // 3. Панель инструментов (БЕЗ line-height)
+           // 3. Панель инструментов (ПОЛНОСТЬЮ УБРАН line-height)
            const toolbarConfig = [
                [{ 'font': ['inter', 'arial', 'georgia', 'times-new-roman'] }],
                [{ 'size': ['small', false, 'large', 'huge'] }],
@@ -1681,14 +1686,11 @@
     // ============================================================
     function initFileUploadHandler() {
         const uploadBtn = document.getElementById('uploadDocBtn');
-        if (!uploadBtn) {
-            console.log("⚠️ Кнопка uploadDocBtn не найдена (возможно, ошибка загрузки DOM).");
-            return;
-        }
+        if (!uploadBtn) return;
 
         uploadBtn.addEventListener('click', function() {
             if (!quillEditor) {
-                showToast("Редактор еще загружается или недоступен. Подождите пару секунд.", false);
+                showToast("Редактор еще загружается. Подождите пару секунд.", false);
                 return;
             }
 
@@ -1804,7 +1806,6 @@
       // Инициализация кнопки загрузки
       initFileUploadHandler();
 
-      // Запуск
       initData();
     });
   </script>
