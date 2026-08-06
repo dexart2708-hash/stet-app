@@ -16,7 +16,6 @@
   <link href="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.snow.css" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.js"></script>
   
-  <!-- ДОБАВЛЕННЫЕ БИБЛИОТЕКИ ДЛЯ ЧТЕНИЯ ФАЙЛОВ -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
@@ -470,8 +469,26 @@
     .toast-msg.success { background: #10b981; }
     .toast-msg.error { background: #e74c3c; }
 
-    /* Стили для новой кнопки загрузки файла */
-    #uploadDocBtn { transition: all 0.2s ease; }
+    /* Стили для области загрузки файлов */
+    #file-upload-area {
+      margin-bottom: 10px;
+      display: flex; /* Видно по умолчанию */
+      gap: 10px;
+      align-items: center;
+    }
+    #uploadDocBtn {
+      border: 1px solid #ccc;
+      background: #fdfdfd;
+      border-radius: var(--radius-sm);
+      padding: 6px 12px;
+      cursor: pointer;
+      font-family: var(--font);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      color: var(--text-secondary);
+      transition: all 0.2s ease;
+    }
     #uploadDocBtn:hover { background: #f0f0f0 !important; border-color: #bbb !important; }
   </style>
 </head>
@@ -554,11 +571,9 @@
         </div>
         <div class="field" id="editor-field">
           <label>Содержимое</label>
-          <!-- ДОБАВЛЕНА КНОПКА ДЛЯ ЗАГРУЗКИ ДОКУМЕНТОВ -->
-          <div id="file-upload-area" style="margin-bottom: 10px; display: flex; gap: 10px; align-items: center;">
-            <button id="uploadDocBtn" style="border: 1px solid #ccc; background: #fdfdfd; border-radius: var(--radius-sm); padding: 6px 12px; cursor: pointer; font-family: var(--font); display: flex; align-items: center; gap: 6px;">
-              <i class="fas fa-upload"></i> Загрузить Word/Excel
-            </button>
+          <!-- КНОПКА ЗАГРУЗКИ ФАЙЛОВ (ПОСТОЯННО В HTML) -->
+          <div id="file-upload-area">
+            <button id="uploadDocBtn"><i class="fas fa-upload"></i> Загрузить Word/Excel</button>
             <span style="font-size: 0.75rem; color: #888;">(.docx, .xlsx, до 10 МБ)</span>
           </div>
           <div id="editor-container"></div>
@@ -1425,6 +1440,7 @@
       const overlay = document.getElementById('modalOverlay');
       const modalEl = overlay.querySelector('.modal');
       const editorField = document.getElementById('editor-field');
+      const fileUploadArea = document.getElementById('file-upload-area');
       const container = document.getElementById('editor-container');
 
       if (quillEditor) { quillEditor = null; }
@@ -1443,22 +1459,22 @@
         const t = this.value;
         if (t === 'text') {
           editorField.style.display = 'block';
-          document.getElementById('file-upload-area').style.display = 'flex';
+          fileUploadArea.style.display = 'flex'; // Показываем область с кнопкой
           setTimeout(() => initQuill(), 150);
         } else {
           editorField.style.display = 'none';
-          document.getElementById('file-upload-area').style.display = 'none';
+          fileUploadArea.style.display = 'none'; // Скрываем область с кнопкой
         }
       };
 
       const type = document.getElementById('editType').value;
       if (type === 'text') {
         editorField.style.display = 'block';
-        document.getElementById('file-upload-area').style.display = 'flex';
+        fileUploadArea.style.display = 'flex'; // Показываем область с кнопкой
         setTimeout(() => initQuill(), 150);
       } else {
         editorField.style.display = 'none';
-        document.getElementById('file-upload-area').style.display = 'none';
+        fileUploadArea.style.display = 'none'; // Скрываем область с кнопкой
       }
 
       overlay.classList.add('active');
@@ -1684,74 +1700,74 @@
     }
 
     // ============================================================
-    // 11. ОБРАБОТЧИК ЗАГРУЗКИ WORD / EXCEL (НОВАЯ ФИЧА)
+    // 11. ОБРАБОТЧИК ЗАГРУЗКИ WORD / EXCEL (ОТДЕЛЬНАЯ ФУНКЦИЯ)
     // ============================================================
-    document.addEventListener('DOMContentLoaded', function() {
+    function initFileUploadHandler() {
         const uploadBtn = document.getElementById('uploadDocBtn');
-        if (uploadBtn) {
-            uploadBtn.addEventListener('click', function() {
-                if (!quillEditor) {
-                    showToast("Редактор еще загружается. Подождите пару секунд.", false);
+        if (!uploadBtn) return;
+
+        uploadBtn.addEventListener('click', function() {
+            if (!quillEditor) {
+                showToast("Редактор еще загружается. Подождите пару секунд.", false);
+                return;
+            }
+
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.docx,.xlsx';
+            input.click();
+
+            input.onchange = async function(e) {
+                const file = e.target.files[0];
+                if (!file) return;
+
+                // Ограничение размера файла 10МБ
+                if (file.size > 10 * 1024 * 1024) {
+                    showToast("Файл слишком большой. Максимальный размер 10 МБ.", false);
                     return;
                 }
 
-                const input = document.createElement('input');
-                input.type = 'file';
-                input.accept = '.docx,.xlsx';
-                input.click();
+                const reader = new FileReader();
+                reader.readAsArrayBuffer(file);
+                reader.onload = async function(ev) {
+                    try {
+                        const buffer = ev.target.result;
+                        let htmlContent = '';
 
-                input.onchange = async function(e) {
-                    const file = e.target.files[0];
-                    if (!file) return;
-
-                    // Ограничение размера файла 10МБ
-                    if (file.size > 10 * 1024 * 1024) {
-                        showToast("Файл слишком большой. Максимальный размер 10 МБ.", false);
-                        return;
-                    }
-
-                    const reader = new FileReader();
-                    reader.readAsArrayBuffer(file);
-                    reader.onload = async function(ev) {
-                        try {
-                            const buffer = ev.target.result;
-                            let htmlContent = '';
-
-                            if (file.name.endsWith('.docx')) {
-                                // Парсим Word через Mammoth
-                                const result = await mammoth.convertToHtml({ 
-                                    arrayBuffer: buffer, 
-                                    convertImage: mammoth.images.imgElement // Преобразует картинки в base64
-                                });
-                                htmlContent = result.value;
-                            } else if (file.name.endsWith('.xlsx')) {
-                                // Парсим Excel через XLSX
-                                const workbook = XLSX.read(buffer, { type: 'array' });
-                                const firstSheetName = workbook.SheetNames[0];
-                                const worksheet = workbook.Sheets[firstSheetName];
-                                htmlContent = XLSX.utils.sheet_to_html(worksheet);
-                            } else {
-                                showToast("Неподдерживаемый формат файла. Загрузите .docx или .xlsx", false);
-                                return;
-                            }
-
-                            // Заменяем содержимое редактора на HTML из файла
-                            quillEditor.setContents([]);
-                            quillEditor.clipboard.dangerouslyPasteHTML(htmlContent);
-                            showToast("Документ успешно загружен и преобразован!");
-                        } catch (err) {
-                            console.error(err);
-                            showToast("Ошибка при чтении файла: " + err.message, false);
+                        if (file.name.endsWith('.docx')) {
+                            // Парсим Word через Mammoth
+                            const result = await mammoth.convertToHtml({ 
+                                arrayBuffer: buffer, 
+                                convertImage: mammoth.images.imgElement 
+                            });
+                            htmlContent = result.value;
+                        } else if (file.name.endsWith('.xlsx')) {
+                            // Парсим Excel через XLSX
+                            const workbook = XLSX.read(buffer, { type: 'array' });
+                            const firstSheetName = workbook.SheetNames[0];
+                            const worksheet = workbook.Sheets[firstSheetName];
+                            htmlContent = XLSX.utils.sheet_to_html(worksheet);
+                        } else {
+                            showToast("Неподдерживаемый формат файла. Загрузите .docx или .xlsx", false);
+                            return;
                         }
-                    };
-                    e.target.value = ''; // Сброс поля input
+
+                        // Заменяем содержимое редактора на HTML из файла
+                        quillEditor.setContents([]);
+                        quillEditor.clipboard.dangerouslyPasteHTML(htmlContent);
+                        showToast("Документ успешно загружен и преобразован!");
+                    } catch (err) {
+                        console.error(err);
+                        showToast("Ошибка при чтении файла: " + err.message, false);
+                    }
                 };
-            });
-        }
-    });
+                e.target.value = ''; // Сброс поля input
+            };
+        });
+    }
 
     // ============================================================
-    // 12. ЗАПУСК ПРИЛОЖЕНИЯ
+    // 12. ЗАПУСК ПРИЛОЖЕНИЯ (ВСЕ В ОДНОМ DOMContentLoaded)
     // ============================================================
     document.addEventListener('DOMContentLoaded', function() {
       const savedTheme = localStorage.getItem('hotelChecklistTheme') || 'default';
@@ -1809,6 +1825,10 @@
         });
       }
 
+      // Инициализация кнопки загрузки файлов
+      initFileUploadHandler();
+
+      // Запуск приложения
       initData();
     });
   </script>
